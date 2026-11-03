@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">GymHub</string>
+    <string name="title_activity_main">GymHub</string>
+    <string name="package_name">dev.aios.gymhub</string>
+    <string name="custom_url_scheme">dev.aios.gymhub</string>
+</resources>

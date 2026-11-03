@@ -1,0 +1,28 @@
+const paths = {
+  home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-6v-7h-4v7H4a1 1 0 0 1-1-1z"/>',
+  dumbbell: '<path d="M3 8v8m4-11v14M17 5v14m4-11v8M7 12h10"/>',
+  book: '<path d="M4 3h6a3 3 0 0 1 3 3v15a4 4 0 0 0-4-2H3V3zm9 3a3 3 0 0 1 3-3h5v16h-5a3 3 0 0 0-3 2"/>',
+  chart: '<path d="M4 3v17h17M8 15l4-5 4 2 5-7"/>',
+  more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+  play: '<path d="m8 4 13 8-13 8z"/>',
+  plus: '<path d="M12 4v16M4 12h16"/>',
+  arrow: '<path d="M4 12h16m-6-6 6 6-6 6"/>',
+  check: '<path d="m5 12 4 4L20 5"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  flame: '<path d="M12 2c1 6 7 6 7 13a7 7 0 0 1-14 0c0-3 2-5 4-7 0 4 2 5 2 5s3-4 1-11z"/>',
+  leaf: '<path d="M20 3C8 2 2 8 5 15s14 8 15-12ZM4 21l12-13"/>',
+  target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  calendar: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 2v6m10-6v6M3 11h18"/>',
+  chevron: '<path d="m9 5 7 7-7 7"/>',
+  back: '<path d="m14 5-7 7 7 7"/>',
+  edit: '<path d="m14 5 5 5M4 20l5-1L21 7l-5-5L4 14z"/>',
+  trash: '<path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/>',
+  pause: '<path d="M8 5v14M16 5v14"/>',
+  swap: '<path d="M3 7h16m-4-4 4 4-4 4M21 17H5m4-4-4 4 4 4"/>',
+  download: '<path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/>',
+  trophy: '<path d="M7 3h10v7a5 5 0 0 1-10 0zM7 5H3v3a4 4 0 0 0 4 4m10-7h4v3a4 4 0 0 1-4 4m-5 3v6m-4 0h8"/>',
+  search: '<circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/>',
+  shield: '<path d="m12 2 9 4v6c0 5-9 10-9 10S3 17 3 12V6z"/><path d="m8 12 3 3 5-6"/>',
+  close: '<path d="m6 6 12 12M6 18 18 6"/>'
+};
+export const icon = (name, cls = '') => `<svg class="icon ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] ?? paths.dumbbell}</svg>`;
