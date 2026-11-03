@@ -2,6 +2,8 @@
 
 Il tuo spazio per allenarti. Android e browser, open source, senza abbonamento.
 
+[Apri GymHub nel browser](https://nuovorossi1-blip.github.io/gymhub/) · [APK di anteprima](https://github.com/nuovorossi1-blip/gymhub/releases)
+
 **Prima versione 0.1, non ancora equivalente a tutte le funzioni di STNDRD.** Codice e grafica originali; non include codice decompilato, contenuti, video o immagini di altre app. Grafica AI-OS: grafite, oro, Manrope e Barlow Condensed inclusi nell'app.
 
 ## Funzioni disponibili

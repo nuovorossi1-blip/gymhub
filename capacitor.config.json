@@ -4,5 +4,8 @@
   "webDir": "dist",
   "backgroundColor": "#1A1A1A",
   "android": { "backgroundColor": "#1A1A1A", "allowMixedContent": false },
-  "plugins": { "LocalNotifications": { "smallIcon": "ic_stat_gymhub", "iconColor": "#F5A623" } }
+  "plugins": {
+    "LocalNotifications": { "smallIcon": "ic_stat_gymhub", "iconColor": "#F5A623" },
+    "SystemBars": { "style": "DARK", "insetsHandling": "css", "initialViewportFitValueHint": "cover" }
+  }
 }

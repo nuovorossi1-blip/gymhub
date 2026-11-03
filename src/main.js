@@ -246,6 +246,13 @@ root.addEventListener('click', async event => {
   try { await actions[b.dataset.action]?.(b); } catch (error) { toast(error.message || 'Operazione non riuscita.', true); }
 });
 root.addEventListener('input', event => {
+  const target = event.target;
+  if (target.dataset.set && target.value !== '' && target.validity.valid) {
+    const value = Number(target.value), key = target.dataset.property;
+    if (Number.isFinite(value) && (key !== 'reps' || Number.isInteger(value))) {
+      update(s => { const set = s.active?.exercises.find(e => e.id === target.dataset.row)?.sets.find(r => r.id === target.dataset.set); if (set && !set.done) set[key] = value; }, false);
+    }
+  }
   if (event.target.id === 'exercise-search') {
     libraryQuery = event.target.value; const pos = event.target.selectionStart; render(); const target = document.querySelector('#exercise-search'); target.focus(); target.setSelectionRange(pos, pos);
   }
@@ -289,12 +296,15 @@ function tick() {
 }
 setInterval(tick, 250);
 window.addEventListener('visibilitychange', tick);
-if (Capacitor.isNativePlatform()) App.addListener('backButton', () => {
+if (Capacitor.isNativePlatform()) {
+App.addListener('appStateChange', ({ isActive }) => { if (!isActive && state) save(state).catch(() => { storageError = true; }); });
+App.addListener('backButton', () => {
   const dialog = document.querySelector('dialog[open]');
   if (dialog) { dialog.close(); return; }
   if (viewStack.length > 1) { viewStack.pop(); view = viewStack.at(-1); render(); window.scrollTo(0, 0); }
   else App.minimizeApp();
 });
+}
 try {
   state = await load(); render();
   if (!Capacitor.isNativePlatform() && 'serviceWorker' in navigator && import.meta.env.PROD) navigator.serviceWorker.register(new URL('sw.js', document.baseURI)).catch(() => {});
