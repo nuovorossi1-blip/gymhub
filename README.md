@@ -11,6 +11,8 @@ Il tuo spazio per allenarti. Android e browser, open source, senza abbonamento.
 - Libreria iniziale di 26 esercizi; nuovi esercizi, gruppo muscolare, attrezzo e note personali.
 - Creazione, modifica, riordino, duplicazione e cancellazione delle schede; calendario settimanale.
 - Serie, ripetizioni, carichi, superset (gruppi A–D) e fino a tre drop per serie principale.
+- Versione 0.1.1: intervalli di ripetizioni, tri-set riconosciuti come gruppi di tre esercizi, rest-pause con conteggi diversi per serie e timer breve separato dai drop set.
+- Riferimento video pubblico “This Back Workout Won Me 6 Olympias” di Chris Bumstead, con minutaggi e creazione di una copia personale. Dati controllati sui cartelli originali e sui sottotitoli; nessun video o fotogramma distribuito. I recuperi ordinari non indicati rimangono manuali. Le ripetizioni effettive nei range e nei rest-pause vanno registrate, non sono inventate.
 - Timer di recupero dopo un giro completo di superset o l'ultimo drop; aggiunta di 30 secondi e salto.
 - Sostituzione di un esercizio prima di registrarne le serie; la scheda e lo storico rimangono indipendenti.
 - Pausa e ripresa, anche dopo chiusura e riapertura. La pausa esclude il tempo dal totale attivo e annulla il recupero.

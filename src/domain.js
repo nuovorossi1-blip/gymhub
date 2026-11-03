@@ -42,6 +42,9 @@ export function validatePlan(plan, state) {
     if (!state.exercises.some(e => e.id === row.exerciseId)) throw new Error('Esercizio non trovato.');
     number(row.sets, 1, 20, 'Serie'); number(row.reps, 1, 100, 'Ripetizioni'); number(row.rest, 0, 900, 'Recupero'); number(row.drops, 0, 3, 'Drop set');
     if (![row.sets, row.reps, row.rest, row.drops].every(Number.isInteger)) throw new Error('Usa numeri interi nella scheda.');
+    if (row.repsMax != null && (!Number.isInteger(row.repsMax) || row.repsMax < row.reps || row.repsMax > 100)) throw new Error('Il massimo ripetizioni deve essere intero, almeno pari al minimo e non oltre 100.');
+    if (row.restPause != null && (!Array.isArray(row.restPause) || row.restPause.length !== row.sets || !row.restPause.every(n => Number.isInteger(n) && n >= 0 && n <= 3))) throw new Error('Indica da 0 a 3 rest-pause per ogni serie principale.');
+    if (row.restPause?.some(n => n > 0) && (!Number.isInteger(row.restPauseSeconds) || row.restPauseSeconds < 1 || row.restPauseSeconds > 90)) throw new Error('La pausa breve deve durare da 1 a 90 secondi.');
     if (!['', 'A', 'B', 'C', 'D'].includes(row.group)) throw new Error('Gruppo superset non valido.');
     if (row.group) (groups[row.group] ??= []).push(row);
   }
@@ -59,8 +62,10 @@ export function startWorkout(state, plan, now = Date.now()) {
     const exercise = state.exercises.find(e => e.id === row.exerciseId);
     const last = [...state.history].reverse().flatMap(h => h.exercises).find(e => e.exerciseId === row.exerciseId);
     return { id: uid(), exerciseId: exercise.id, name: exercise.name, muscle: exercise.muscle, equipment: exercise.equipment, rest: row.rest, group: row.group,
-      sets: Array.from({ length: row.sets }, (_, i) => [{ id: uid(), round: i, kind: 'working', kg: last?.sets.find(s => s.done && s.kind === 'working')?.kg ?? 0, reps: row.reps, done: false },
-        ...Array.from({ length: row.drops }, () => ({ id: uid(), round: i, kind: 'drop', kg: 0, reps: row.reps, done: false }))]).flat() };
+      ...(row.restPause?.some(n => n > 0) ? { restPauseSeconds: row.restPauseSeconds } : {}), ...(row.sameWeight ? { sameWeight: true } : {}),
+      sets: Array.from({ length: row.sets }, (_, i) => [{ id: uid(), round: i, kind: 'working', kg: last?.sets.find(s => s.done && s.kind === 'working')?.kg ?? 0, reps: row.repsMax ? null : row.reps, ...(row.repsMax ? { target: `${row.reps}–${row.repsMax}` } : {}), done: false },
+        ...Array.from({ length: row.drops }, () => ({ id: uid(), round: i, kind: 'drop', kg: 0, reps: row.reps, done: false })),
+        ...Array.from({ length: row.restPause?.[i] ?? 0 }, () => ({ id: uid(), round: i, kind: 'restpause', kg: 0, reps: null, done: false }))]).flat() };
   }) };
   return { ...state, active };
 }
@@ -82,17 +87,27 @@ export function completeSet(state, exerciseId, setId, now = Date.now()) {
   if (!session || session.pausedAt) throw new Error('Riprendi l’allenamento prima di registrare una serie.');
   const exercise = session.exercises.find(e => e.id === exerciseId), set = exercise?.sets.find(s => s.id === setId);
   if (!set) throw new Error('Serie non trovata.');
+  const roundSets = exercise.sets.filter(s => s.round === set.round);
+  if (!set.done && set.kind === 'restpause' && roundSets.slice(0, roundSets.findIndex(s => s.id === set.id)).some(s => !s.done)) throw new Error('Completa prima la serie precedente dello stesso rest-pause.');
   number(set.kg, 0, 1500, 'Carico'); number(set.reps, 1, 1000, 'Ripetizioni');
   if (!Number.isInteger(set.reps)) throw new Error('Le ripetizioni devono essere intere.');
   set.done = !set.done;
   session.restUntil = null;
+  session.restKind = null;
   if (!set.done) return next;
-  const roundSets = exercise.sets.filter(s => s.round === set.round);
-  // A drop follows its parent set immediately. A superset rests after the full round.
-  if (!roundSets.every(s => s.done)) return next;
+  // Drops are immediate; a rest-pause has its own short timer, never a drop label.
+  if (!roundSets.every(s => s.done)) {
+    const pending = roundSets.find(s => !s.done);
+    if (pending.kind === 'restpause') {
+      session.restUntil = now + exercise.restPauseSeconds * 1000;
+      session.restKind = 'restpause';
+      if (pending.kg === 0) pending.kg = set.kg;
+    }
+    return next;
+  }
   const group = exercise.group ? session.exercises.filter(e => e.group === exercise.group) : [exercise];
   const roundComplete = group.every(e => e.sets.filter(s => s.round === set.round).every(s => s.done));
-  if (roundComplete && exercise.rest > 0) session.restUntil = now + exercise.rest * 1000;
+  if (roundComplete && exercise.rest > 0) { session.restUntil = now + exercise.rest * 1000; session.restKind = 'recovery'; }
   return next;
 }
 
@@ -165,8 +180,15 @@ export function validateBackup(input) {
     if (!Array.isArray(session.exercises) || session.exercises.length > 80) throw new Error('Sessione non valida.');
     for (const e of session.exercises) {
       id(e.id); id(e.exerciseId); text(e.name, 'Nome esercizio'); number(e.rest, 0, 900, 'Recupero');
-      if (!['', 'A', 'B', 'C', 'D'].includes(e.group) || !Array.isArray(e.sets) || e.sets.length > 80) throw new Error('Serie non valide.');
-      for (const set of e.sets) { id(set.id); storedNumber(set.kg, 0, 1500, 'Carico'); storedNumber(set.reps, 1, 1000, 'Ripetizioni'); storedNumber(set.round, 0, 19, 'Giro'); if (!Number.isInteger(set.reps) || !Number.isInteger(set.round) || typeof set.done !== 'boolean' || !['working', 'drop', 'warmup'].includes(set.kind)) throw new Error('Serie non valida.'); }
+      if (!['', 'A', 'B', 'C', 'D'].includes(e.group) || !Array.isArray(e.sets) || e.sets.length > 160) throw new Error('Serie non valide.');
+      if (e.sets.some(set => set.kind === 'restpause')) storedNumber(e.restPauseSeconds, 1, 90, 'Rest-pause');
+      for (const set of e.sets) {
+        id(set.id); storedNumber(set.kg, 0, 1500, 'Carico'); storedNumber(set.round, 0, 19, 'Giro');
+        if (set.reps === null && !set.done) { if (set.kind !== 'restpause' && !/^\d{1,3}–\d{1,3}$/.test(set.target ?? '')) throw new Error('Obiettivo ripetizioni non valido.'); }
+        else { storedNumber(set.reps, 1, 1000, 'Ripetizioni'); if (!Number.isInteger(set.reps)) throw new Error('Serie non valida.'); }
+        if (!Number.isInteger(set.round) || typeof set.done !== 'boolean' || !['working', 'drop', 'warmup', 'restpause'].includes(set.kind)) throw new Error('Serie non valida.');
+        if (set.target !== undefined && (typeof set.target !== 'string' || !/^\d{1,3}–\d{1,3}$/.test(set.target))) throw new Error('Intervallo ripetizioni non valido.');
+      }
     }
   };
   if (s.active !== null) checkSession(s.active);
