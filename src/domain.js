@@ -49,6 +49,7 @@ export function validatePlan(plan, state) {
     number(row.rest, 0, 900, 'Recupero'); number(row.drops, 0, 3, 'Drop set');
     if (![row.sets, ...(flexible ? [] : [row.reps]), row.rest, row.drops].every(Number.isInteger)) throw new Error('Usa numeri interi nella scheda.');
     if (row.targetSeconds != null && (!Number.isInteger(row.targetSeconds) || row.targetSeconds < 1 || row.targetSeconds > 600)) throw new Error('Durata serie da 1 a 600 secondi.');
+    if (row.transitionRest != null && (!row.group || !Number.isInteger(row.transitionRest) || row.transitionRest < 1 || row.transitionRest > 900)) throw new Error('Recupero tra esercizi del gruppo non valido.');
     for (const key of ['toFailure', 'freeReps', 'warmup', 'dropRepsManual', 'variableDrops']) if (row[key] !== undefined && typeof row[key] !== 'boolean') throw new Error('Indicazione serie non valida.');
     if (row.groupOffset != null && (!Number.isInteger(row.groupOffset) || row.groupOffset < 0 || row.groupOffset + row.sets > 20)) throw new Error('Giro iniziale non valido.');
     if (row.warmupSets != null && (!Number.isInteger(row.warmupSets) || row.warmupSets < 0 || row.warmupSets > 10)) throw new Error('Riscaldamento non valido.');
@@ -76,7 +77,7 @@ export function startWorkout(state, plan, now = Date.now()) {
     const flexible = row.targetSeconds != null || row.toFailure || row.freeReps;
     const target = row.targetSeconds ? `${row.targetSeconds} s` : row.toFailure ? 'AMRAP' : row.freeReps ? 'Libere' : row.repsMax ? `${row.reps}–${row.repsMax}` : null;
     return { id: uid(), exerciseId: exercise.id, name: exercise.name, muscle: exercise.muscle, equipment: exercise.equipment, rest: row.rest, group: row.group,
-      ...Object.fromEntries(['targetSeconds','toFailure','freeReps','warmupSets','instructions','label','variableDrops','groupOffset'].filter(k => row[k] != null).map(k => [k,row[k]])),
+      ...Object.fromEntries(['targetSeconds','toFailure','freeReps','warmupSets','instructions','label','variableDrops','groupOffset','transitionRest'].filter(k => row[k] != null).map(k => [k,row[k]])),
       ...(row.restPause?.some(n => n > 0) ? { restPauseSeconds: row.restPauseSeconds } : {}), ...(row.sameWeight ? { sameWeight: true } : {}),
       sets: Array.from({ length: row.sets }, (_, i) => [{ id: uid(), round: i + (row.groupOffset || 0), kind: row.warmup ? 'warmup' : 'working', kg: last?.sets.find(s => s.done && s.kind === 'working')?.kg ?? 0, reps: row.repsMax || flexible ? null : row.reps, ...(target ? { target } : {}), done: false },
         ...Array.from({ length: row.drops }, () => ({ id: uid(), round: i + (row.groupOffset || 0), kind: 'drop', kg: 0, reps: row.dropRepsManual || flexible ? null : row.reps, ...(row.dropRepsManual || flexible ? { target: 'Libere' } : {}), done: false })),
@@ -138,6 +139,7 @@ export function completeSet(state, exerciseId, setId, now = Date.now()) {
   const group = exercise.group ? session.exercises.filter(e => e.group === exercise.group) : [exercise];
   const roundComplete = group.every(e => e.sets.filter(s => s.round === set.round).every(s => s.done));
   if (roundComplete && exercise.rest > 0) { session.restUntil = now + exercise.rest * 1000; session.restKind = 'recovery'; }
+  else if (!roundComplete && exercise.transitionRest) { session.restUntil = now + exercise.transitionRest * 1000; session.restKind = 'transition'; }
   return next;
 }
 
@@ -213,6 +215,7 @@ export function validateBackup(input) {
     for (const e of session.exercises) {
       id(e.id); id(e.exerciseId); text(e.name, 'Nome esercizio'); number(e.rest, 0, 900, 'Recupero');
       if (e.targetSeconds != null) { storedNumber(e.targetSeconds, 1, 600, 'Durata serie'); if (!Number.isInteger(e.targetSeconds)) throw new Error('Durata serie non valida.'); }
+      if (e.transitionRest != null) { storedNumber(e.transitionRest, 1, 900, 'Recupero tra esercizi'); if (!Number.isInteger(e.transitionRest) || !e.group) throw new Error('Recupero tra esercizi non valido.'); }
       if (e.instructions != null && (typeof e.instructions !== 'string' || e.instructions.length > 1500)) throw new Error('Istruzioni non valide.');
       if (e.label != null) text(e.label, 'Fase');
       if (e.variableDrops !== undefined && typeof e.variableDrops !== 'boolean') throw new Error('Drop non valido.');

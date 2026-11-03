@@ -8,6 +8,7 @@ Il tuo spazio per allenarti. Android e browser, open source, senza abbonamento.
 
 ## Funzioni disponibili
 
+- Versione 0.1.4: in **Schede**, oltre alla schiena, due sessioni video indipendenti: **Petto, spalle e tricipiti** (15/08/2026) e **Gambe e polpacci** (01/04/2026). Ogni scheda ha fonte e minutaggi propri. Prima di importare, i conteggi non dichiarati vanno scelti personalmente; le ripetizioni non prescritte si registrano durante l'allenamento. I tre video 2026 non formano una settimana ufficiale unica. Dettagli e limiti in [FONTI-SESSIONI-2026.md](FONTI-SESSIONI-2026.md).
 - Libreria iniziale di 26 esercizi; nuovi esercizi, gruppo muscolare, attrezzo e note personali.
 - Versione 0.1.2: apri un esercizio e scegli “Guarda su YouTube”. Tutorial diretti per i 26 esercizi iniziali e collegamenti ai blocchi del video originale per gli otto esercizi della sessione Chris. Disponibili anche durante l'allenamento. Link personale modificabile e conservato nei backup; per gli esercizi nuovi senza video è disponibile una ricerca YouTube esplicitamente indicata.
 - “Nuova scheda” permette di partire da zero, dalla sessione Chris · Schiena2026 o dal PPL completo2019. “Pianifica la settimana” assegna schede singole; “Pianifica il ciclo” distribuisce tutte le sei sedute e i riposi.

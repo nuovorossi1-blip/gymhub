@@ -4,7 +4,7 @@ import { App } from '@capacitor/app';
 import { uid, dayKey, clone, number, text, MUSCLES, EQUIPMENT, validatePlan, startWorkout, startEffort, addVariableDrop, completeSet, swapExercise, finishWorkout, togglePause, elapsed, sessionStats, foodTotals, recipeTotals, streak, validateBackup } from './domain.js';
 import { load, save, exportData, scheduleRest } from './storage.js';
 import { icon } from './icons.js';
-import { backReference, importBackReference } from './references.js';
+import { backReference, importBackReference, additionalSessions, importVideoSession } from './references.js';
 import { exerciseVideo, exerciseVideoSearch, youtubeUrl } from './videos.js';
 import { ppl, pplExercises, importPpl, pplDates, schedulePpl } from './ppl.js';
 import { enableWebUpdates } from './updates.js';
@@ -70,6 +70,8 @@ function plansPage() {
   return head('ALLENATI A MODO TUO', 'LE TUE SCHEDE', 'Struttura, personalizza, ripeti.', button('new-plan', 'Nuova scheda', 'plus', 'primary')) +
     `<section class="panel reference-card"><div><p class="eyebrow">CHRIS BUMSTEAD · PROGRAMMA COMPLETO 2019</p><h2>PUSH · PULL · GAMBE</h2><p>Sei sedute A/B, esercizi, serie e tecniche dal video ufficiale. Riposi configurabili e calendario con nomi dei giorni.</p></div>${button('nav', 'Apri la split completa', 'book', 'primary', 'data-view="ppl"')}</section>` +
     `<section class="panel reference-card"><div><p class="eyebrow">CHRIS BUMSTEAD · SESSIONE DISPONIBILE</p><h2>SCHIENA, BICIPITI E DELTOIDI</h2><p>2 × 8 con rest-pause · Due tri-set 3 × 8–12 · Finisher 10 × 10</p><p>Una sessione verificata dal video. Sessione singola del 2026. Il programma completo PPL 2019 è disponibile nella sezione qui sopra.</p></div>${button('back-reference', 'Scopri la sessione', 'book', 'secondary')}</section>` +
+    `<div class="session-catalog">${additionalSessions.map(r=>`<section class="panel reference-card video-session-card"><div><p class="eyebrow">CHRIS BUMSTEAD · SESSIONE DISPONIBILE</p><h2>${esc(r.cardTitle)}</h2><p>${esc(r.summary)}</p><p>${dateFmt(r.published+'T12:00:00')} · Video indipendente · Alcune serie da personalizzare.</p></div>${button('video-session',r.key==='chest'?'Scopri petto e tricipiti':'Scopri gambe','book','secondary',`data-session="${r.key}"`)}</section>`).join('')}</div>` +
+    `<p class="helper session-caption">Le tre sessioni 2026 provengono da video diversi: non costituiscono una settimana ufficiale unica. Ogni scheda conserva fonte e data. Il PPL completo 2019 resta un programma separato.</p>` +
     `<div class="section-head"><p class="helper">Le tue schede sono qui sotto. Puoi assegnarle alle date del tuo calendario.</p>${button('schedule', 'Pianifica la settimana', 'clock', 'text-button')}</div>` +
     (state.active ? `<div class="resume-banner">${icon('clock')}<div><strong>Hai un allenamento in corso</strong><span>${esc(state.active.name)}</span></div>${button('resume', 'Riprendi', 'arrow', 'secondary')}</div>` : '') +
     `<div class="plan-grid">${state.plans.map(plan => `<article class="panel plan-card"><div class="section-head"><div class="tile-icon">${icon('dumbbell')}</div>${button('edit-plan', icon('edit'), '', 'icon-button', `data-id="${plan.id}" aria-label="Modifica ${esc(plan.name)}"`)}</div><h2>${esc(plan.name)}</h2><p>${plan.exercises.length} esercizi · ${plan.exercises.reduce((s, e) => s + e.sets, 0)} serie</p><div class="muscle-tags">${[...new Set(plan.exercises.map(r => state.exercises.find(e => e.id === r.exerciseId)?.muscle))].map(m => badge(m)).join('')}</div><ul class="plan-preview">${plan.exercises.slice(0, 4).map(row => `<li><span>${esc(state.exercises.find(e => e.id === row.exerciseId)?.name)}</span><strong>${row.sets} × ${repTarget(row)}</strong></li>`).join('')}</ul>${plan.notes ? `<p class="plan-note">${esc(plan.notes)}</p>` : ''}<div class="card-actions">${button('start', 'Inizia', 'play', 'primary', `data-id="${plan.id}"`)}${button('duplicate-plan', icon('plus'), '', 'icon-button', `data-id="${plan.id}" aria-label="Duplica scheda"`)}${button('delete-plan', icon('trash'), '', 'icon-button danger-text', `data-id="${plan.id}" aria-label="Elimina scheda"`)}</div></article>`).join('')}</div>${!state.plans.length ? empty('dumbbell', 'Spazio al tuo prossimo obiettivo', 'Aggiungi la prima scheda per iniziare.', button('new-plan', 'Crea scheda', 'plus', 'primary')) : ''}`;
@@ -114,7 +116,7 @@ function runnerPage() {
   return head('IL TUO MOMENTO', esc(s.name), 'Ogni modifica viene salvata sul dispositivo.', button('toggle-pause', s.pausedAt ? 'Riprendi' : 'Pausa', s.pausedAt ? 'play' : 'pause', 'secondary')) +
     `<div class="session-dashboard"><div><span>TEMPO ATTIVO</span><strong id="session-time">${time(elapsed(s))}</strong></div><div><span>SERIE</span><strong>${stats.sets}<small> / ${total}</small></strong></div><div><span>VOLUME</span><strong>${fmt(stats.volume)}<small> kg</small></strong></div></div><div class="session-progress"><div style="width:${total ? stats.sets / total * 100 : 0}%"></div></div>` +
     (s.pausedAt ? `<div class="resume-banner"><strong>Allenamento in pausa</strong><span>Il tempo attivo è fermo.</span></div>` : '') +
-    `<div id="rest-panel" class="rest-panel" ${!s.restUntil ? 'hidden' : ''}><div>${icon('clock')}<span>${s.restKind === 'restpause' ? 'REST-PAUSE' : 'RECUPERO'}</span><strong id="rest-time">00:00</strong></div><div>${button('rest-add', s.restKind === 'restpause' ? '+5 s' : '+30 s', '', 'small-button')}${button('rest-skip', 'Salta', '', 'small-button')}</div></div>` +
+    `<div id="rest-panel" class="rest-panel" ${!s.restUntil ? 'hidden' : ''}><div>${icon('clock')}<span>${s.restKind === 'restpause' ? 'REST-PAUSE' : s.restKind === 'transition' ? 'PASSAGGIO' : 'RECUPERO'}</span><strong id="rest-time">00:00</strong></div><div>${button('rest-add', ['restpause','transition'].includes(s.restKind) ? '+5 s' : '+30 s', '', 'small-button')}${button('rest-skip', 'Salta', '', 'small-button')}</div></div>` +
     (s.effortUntil ? `<div class="rest-panel effort-panel" id="effort-panel"><div>${icon('clock')}<span>SERIE IN CORSO</span><strong id="effort-time">00:00</strong></div>${button('effort-stop','Ferma','','small-button')}</div>` : '') +
     `<div class="runner-list">${s.exercises.map((e, i) => {
       const group = [...new Map(s.exercises.filter(r => r.group === e.group).map(r=>[r.exerciseId,r])).values()], groupLabel = group.length === 3 ? 'Tri-set' : 'Superset';
@@ -124,7 +126,7 @@ function runnerPage() {
         ${e.label ? `<p class="superset-info">${badge(esc(e.label))}</p>` : ''}${e.instructions ? `<p class="superset-info">${esc(e.instructions)}</p>` : ''}
         ${e.warmupSets ? `<p class="superset-info">Prima delle serie sotto: ${e.warmupSets} serie di riscaldamento, ripetizioni non fissate nel prospetto.</p>` : ''}
         ${e.targetSeconds ? `<p class="superset-info">Obiettivo: ${e.targetSeconds} secondi per serie. Registra poi le ripetizioni effettive.</p>${button('effort-start',`Avvia serie ${e.targetSeconds}s`,'clock','secondary',`data-id="${e.id}" ${s.pausedAt?'disabled':''}`)}` : ''}
-        ${e.group ? `<p class="superset-info">${badge(`${groupLabel.toUpperCase()} ${e.group}`)} ${group.map(r => esc(r.name)).join(' + ')}. Nessuna pausa programmata tra gli esercizi; recupero dopo il giro completo.</p>` : ''}
+        ${e.group ? `<p class="superset-info">${badge(`${groupLabel.toUpperCase()} ${e.group}`)} ${group.map(r => esc(r.name)).join(' + ')}. ${e.transitionRest ? `Passaggi di ${e.transitionRest}s tra gli esercizi; recupero dopo il giro manuale.` : 'Nessuna pausa programmata tra gli esercizi; recupero dopo il giro completo.'}</p>` : ''}
         ${e.restPauseSeconds ? `<p class="superset-info">${badge('REST-PAUSE')} Pause brevi di ${e.restPauseSeconds}s. Registra le ripetizioni aggiuntive realmente eseguite.</p>` : ''}
         ${e.sameWeight ? '<p class="superset-info">Indicazione del video: mantieni lo stesso peso nelle 10 serie. Registra comunque il carico effettivamente usato.</p>' : ''}
         <div class="set-table"><div class="set-header"><span>SERIE</span><span>KG</span><span>RIP.</span><span>FATTO</span></div>${e.sets.map(set => {
@@ -170,7 +172,7 @@ function morePage() {
 }
 
 function settingsPage() {
-  return head('IL CONTROLLO RESTA A TE', 'IMPOSTAZIONI', 'GymHub 0.1.3 · Anteprima') +
+  return head('IL CONTROLLO RESTA A TE', 'IMPOSTAZIONI', 'GymHub 0.1.4 · Anteprima') +
     `<section class="panel settings-panel"><h2>IL TUO PROFILO</h2><form id="profile-form">${field('Come ti chiami?', input('name', state.settings.name, 'required maxlength="100" autocomplete="given-name"'))}<button class="primary" type="submit">Salva nome</button></form></section><section class="panel settings-panel"><h2>I TUOI DATI</h2><p>Salvati solo qui. Android e browser hanno archivi separati: usa il backup per trasferirli. La disinstallazione dell’app o la cancellazione dei dati del browser elimina l’archivio locale.</p><div class="wrap-actions">${button('export', 'Esporta backup', 'download', 'primary')}${button('import', 'Importa backup', 'plus', 'secondary')}</div><input id="import-file" type="file" accept=".json,application/json" hidden></section><section class="panel settings-panel"><h2>FUNZIONI ONLINE</h2><p>Questa versione include allenamento, diario alimentare manuale, ricette, abitudini e progressi. Sincronizzazione tra dispositivi, community, catalogo video e riconoscimento fotografico con AI richiedono servizi aggiuntivi e non sono ancora disponibili.</p><p>Il timer usa l’orologio del dispositivo. Su Android, concedendo le notifiche, può avvisarti a schermo spento; il sistema può ritardare l’avviso. Nel browser l’avviso sonoro funziona mentre la pagina è attiva.</p></section><section class="panel settings-panel"><h2>OPEN SOURCE</h2><p>Codice originale, licenza MIT. Font Manrope e Barlow Condensed con licenza SIL OFL. Nessun codice, video o immagine di STNDRD incluso.</p><p>Nessun account, nessuna pubblicità, nessun pagamento.</p></section>`;
 }
 
@@ -268,6 +270,13 @@ function referenceDetail() {
   }, 'Aggiungi scheda');
 }
 
+function videoSessionDetail(key) {
+  const r=additionalSessions.find(s=>s.key===key);if(!r)return;
+  modal(esc(r.cardTitle),`<p><strong>${esc(r.title)}</strong><br>${r.author} · ${dateFmt(r.published+'T12:00:00')}</p><p class="helper spaced">${esc(r.note)}</p><div class="reference-blocks">${r.blocks.map((block,i)=>`<article class="reference-block"><span class="eyebrow">BLOCCO ${i+1}</span><div class="section-head"><h3>${esc(block.title)}</h3>${badge(esc(block.prescription),'gold-tag')}</div><p>${esc(block.detail)}</p><a class="text-button" href="${r.url}&t=${block.time}s" target="_blank" rel="noopener noreferrer">Guarda da ${Math.floor(block.time/60)}:${String(block.time%60).padStart(2,'0')} ${icon('arrow')}</a></article>`).join('')}</div><h3 class="spaced">Completa la tua copia personale</h3><p class="helper">Questi conteggi non sono dichiarati o verificati nella fonte. Sceglili tu: saranno indicati nella scheda come scelte personali. Le ripetizioni non prescritte si registrano durante l’allenamento.</p>${r.requirements.map(q=>field(esc(q.label),`<input name="${q.key}" type="number" min="1" max="20" step="1" required placeholder="Scegli tu">`)+`<p class="helper">${esc(q.reason)}</p>`).join('')}`,async fd=>{
+    const choices=Object.fromEntries(r.requirements.map(q=>[q.key,Number(fd.get(q.key))]));await commit(importVideoSession(state,key,choices));if(view!=='plans')go('plans');toast('Sessione aggiunta: fonte e scelte personali sono indicate nelle note.');
+  },'Aggiungi scheda personale');
+}
+
 function mealForm(food, totals, name) {
   const simple = !food && !totals;
   const initial = totals ?? { kcal: 0, protein: 0, carbs: 0, fat: 0 };
@@ -307,6 +316,7 @@ async function syncRest() {
 }
 
 const actions = {
+  'video-session': b=>videoSessionDetail(b.dataset.session),
   'import-ppl': async () => { await commit(importPpl(state)); go('plans'); toast('Le sei schede PPL sono disponibili. Le copie già presenti non sono state sovrascritte.'); },
   'schedule-ppl': pplScheduleForm,
   'effort-start': async b => { await commit(startEffort(state,b.dataset.id)); effortNotified=null; await syncRest(); },
@@ -329,7 +339,7 @@ const actions = {
     await update(s => { s.active.restUntil = Date.now() + seconds * 1000; s.active.restKind = 'recovery'; });
     await syncRest();
   }, 'Avvia timer'),
-  'rest-add': async () => { await update(s => s.active.restUntil = Math.max(Date.now(), s.active.restUntil ?? Date.now()) + (s.active.restKind === 'restpause' ? 5000 : 30000)); await syncRest(); },
+  'rest-add': async () => { await update(s => s.active.restUntil = Math.max(Date.now(), s.active.restUntil ?? Date.now()) + (['restpause','transition'].includes(s.active.restKind) ? 5000 : 30000)); await syncRest(); },
   swap: b => { const row = state.active.exercises.find(e => e.id === b.dataset.id), candidates = state.exercises.filter(e => e.muscle === row.muscle && e.id !== row.exerciseId); modal('SOSTITUISCI ESERCIZIO', `<p class="helper">La sostituzione vale per questa sessione. La scheda originale resta disponibile.</p>${field('Nuovo esercizio', `<select name="replacement">${[...candidates, ...state.exercises.filter(e => e.muscle !== row.muscle)].map(e => `<option value="${e.id}">${esc(e.name)} · ${esc(e.equipment)}</option>`).join('')}</select>`)}`, fd => commit(swapExercise(state, row.id, fd.get('replacement'))), 'Sostituisci'); },
   finish: () => { if (!sessionStats(state.active).sets) { toast('Registra almeno una serie prima di concludere.', true); return; } confirmAction('UN ALTRO PASSO FATTO.', 'Le serie completate verranno aggiunte al tuo storico. Le serie non completate non conteranno nel volume.', async () => { await commit(finishWorkout(state)); await syncRest(); go('progress'); toast('Allenamento salvato. Bel lavoro!'); }, 'Salva allenamento'); },
   discard: () => confirmAction('ANNULLARE L’ALLENAMENTO?', 'I dati di questa sessione verranno eliminati. Le schede e lo storico resteranno disponibili.', async () => { await update(s => s.active = null); await syncRest(); go('plans'); }, 'Annulla allenamento'),

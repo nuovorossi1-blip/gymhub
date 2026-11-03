@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { initialState, clone, startWorkout, completeSet, finishWorkout, togglePause, elapsed, swapExercise, sessionStats, foodTotals, recipeTotals, streak, validateBackup, validatePlan } from '../src/domain.js';
-import { backReference, importBackReference } from '../src/references.js';
+import { backReference, importBackReference, chestReference, legsReference, importVideoSession } from '../src/references.js';
 import { exerciseVideo, exerciseVideos, youtubeUrl } from '../src/videos.js';
 import { ppl, importPpl, pplDates, schedulePpl } from '../src/ppl.js';
 import { startEffort, addVariableDrop } from '../src/domain.js';
@@ -48,7 +48,7 @@ test('giri sfalsati polpacci/curl e run-the-rack senza numero drop imposto', () 
 
 test('video: tutta la libreria ha link diretti, personali validati e conservati nei backup', () => {
   const state = importBackReference(initialState(), 15);
-  assert.equal(Object.keys(exerciseVideos).length, 52);
+  assert.equal(Object.keys(exerciseVideos).length, 65);
   for (const exercise of state.exercises) assert.match(exerciseVideo(exercise).url, /^https:\/\/www.youtube.com\/watch\?v=[\w-]{11}/);
   state.exercises[0].videoUrl = 'https://youtu.be/8iPEnn-ltC8?t=30&si=unneeded';
   const restored = validateBackup(JSON.stringify(state));
@@ -60,6 +60,28 @@ test('video: tutta la libreria ha link diretti, personali validati e conservati 
   }
   assert.equal(youtubeUrl('https://youtube.com/shorts/8iPEnn-ltC8'), 'https://www.youtube.com/watch?v=8iPEnn-ltC8');
   assert.equal(exerciseVideo({ id: 'custom' }), null);
+});
+
+test('sessioni2026: fonte petto distinta, numeri dichiarati e giri personali senza valori inventati',()=>{
+  const state=initialState(),before=clone(state);assert.throws(()=>importVideoSession(state,'chest',{}),/scegli/);assert.deepEqual(state,before);
+  const next=importVideoSession(state,'chest',{trisetRounds:3,supersetRounds:2}),plan=next.plans.at(-1);
+  assert.equal(chestReference.published,'2026-08-15');assert.equal(plan.sourceId,chestReference.id);assert.equal(plan.exercises.length,7);
+  assert.deepEqual(plan.exercises.map(r=>r.sets),[4,10,3,3,3,2,2]);assert.equal(plan.exercises[0].reps,8);assert.equal(plan.exercises[1].rest,60);assert.equal(plan.exercises[2].reps,null);assert.equal(plan.exercises[2].freeReps,true);assert.match(plan.notes,/scelta personale/);
+  for(const e of next.exercises.filter(e=>e.id.startsWith('cbum-chest')))assert.match(exerciseVideo(e).url,/ynbS3UZT2O8/);
+  validateBackup(startWorkout(next,plan,10000));assert.throws(()=>importVideoSession(state,'chest',{trisetRounds:0,supersetRounds:2}));
+});
+
+test('tri-set10s: pausa di passaggio, nessun rest-pause o recupero giro inventato',()=>{
+  let state=importVideoSession(initialState(),'chest',{trisetRounds:3,supersetRounds:2});state=startWorkout(state,state.plans.at(-1),10000);
+  const group=state.active.exercises.filter(e=>e.group==='A');
+  for(const [i,e] of group.entries()) {const row=state.active.exercises.find(r=>r.id===e.id);row.sets[0].kg=10;row.sets[0].reps=12;state=completeSet(state,e.id,row.sets[0].id,20000+i*15000);if(i<2){assert.equal(state.active.restUntil,30000+i*15000);assert.equal(state.active.restKind,'transition');}else assert.equal(state.active.restUntil,null);}
+  assert.equal(sessionStats(state.active).volume,360);validateBackup(state);
+});
+
+test('gambe video2026: due serie dichiarate, quattro conteggi richiesti e rep libere',()=>{
+  const state=initialState();assert.throws(()=>importVideoSession(state,'legs',{}));const next=importVideoSession(state,'legs',{frontSets:3,ghrSets:2,pressSets:2,calfSets:4}),plan=next.plans.at(-1);
+  assert.equal(legsReference.published,'2026-04-01');assert.deepEqual(plan.exercises.map(r=>r.sets),[2,2,3,2,2,4]);assert(plan.exercises.every(r=>r.reps===null&&r.freeReps&&r.rest===0));assert(!next.exercises.some(e=>e.id.startsWith('cbum-legs')&&/affond/i.test(e.name)));assert.match(plan.notes,/non sono aggiunti/);
+  for(const e of next.exercises.filter(e=>e.id.startsWith('cbum-legs')))assert.match(exerciseVideo(e).url,/lIXIwgv3l6o/);validateBackup(startWorkout(next,plan,10000));
 });
 
 test('sessione persistente: carichi, pause e storico mantengono i dati e il volume', () => {

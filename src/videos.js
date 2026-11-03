@@ -35,6 +35,11 @@ const referenceTimes = {
   'cbum-high-row': 136, 'cbum-ez-reverse': 472, 'cbum-hammer': 472,
   'cbum-preacher': 472, 'cbum-rear-delt': 628
 };
+const sessionTimes={
+ 'chest-incline':['ynbS3UZT2O8',17],'chest-flat':['ynbS3UZT2O8',185],'chest-jm':['ynbS3UZT2O8',462],'chest-dip':['ynbS3UZT2O8',462],'chest-french':['ynbS3UZT2O8',462],'chest-onearm':['ynbS3UZT2O8',773],'chest-facepull':['ynbS3UZT2O8',773],
+ 'legs-curl':['lIXIwgv3l6o',202],'legs-extension':['lIXIwgv3l6o',202],'legs-front':['lIXIwgv3l6o',306],'legs-ghr':['lIXIwgv3l6o',540],'legs-press':['lIXIwgv3l6o',600],'legs-calf':['lIXIwgv3l6o',811]
+};
+for(const [key,[id,start]] of Object.entries(sessionTimes))exerciseVideos[`cbum-${key}`]={id,start,author:'Chris Bumstead',title:key.startsWith('chest')?'This Chest Workout Won Me 6 Olympias':'Classic Bodybuilding Leg Day',note:'Il collegamento apre il blocco del video originale in cui viene mostrato o spiegato questo esercizio.'};
 for (const [key, start] of Object.entries(referenceTimes)) exerciseVideos[key] = {
   id: 'ZQPVYJc1cpM', start, author: 'Chris Bumstead', title: 'This Back Workout Won Me 6 Olympias',
   note: start === 136 || start === 472 ? 'Il video si apre sul blocco tri-set: i tre esercizi sono mostrati in sequenza.' : 'Il video si apre sul blocco di questo esercizio nella sessione originale.'
