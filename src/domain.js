@@ -1,3 +1,5 @@
+import { youtubeUrl } from './videos.js';
+
 export const uid = () => globalThis.crypto.randomUUID();
 export const dayKey = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 export const clone = value => structuredClone(value);
@@ -171,7 +173,7 @@ export function validateBackup(input) {
     const ids = new Set();
     for (const row of s[key]) { id(row.id); if (ids.has(row.id)) throw new Error('Identificatori duplicati nel backup.'); ids.add(row.id); }
   }
-  for (const e of s.exercises) { text(e.name, 'Nome esercizio'); text(e.muscle, 'Gruppo muscolare'); text(e.equipment, 'Attrezzo'); if (typeof e.notes !== 'string' || e.notes.length > 4000) throw new Error('Note esercizio non valide.'); }
+  for (const e of s.exercises) { text(e.name, 'Nome esercizio'); text(e.muscle, 'Gruppo muscolare'); text(e.equipment, 'Attrezzo'); if (typeof e.notes !== 'string' || e.notes.length > 4000) throw new Error('Note esercizio non valide.'); if (e.videoUrl !== undefined) e.videoUrl = youtubeUrl(e.videoUrl); }
   for (const plan of s.plans) { validatePlan(plan, s); plan.exercises.forEach(row => id(row.id)); }
   const checkSession = session => {
     id(session.id); text(session.name, 'Nome allenamento'); number(session.startedAt, 1, 9e15, 'Inizio'); number(session.pausedMs, 0, 9e15, 'Pausa');

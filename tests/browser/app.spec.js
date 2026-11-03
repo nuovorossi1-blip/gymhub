@@ -11,6 +11,7 @@ test('percorso completo: scheda, sostituzione, superset/drop, pausa, riapertura 
   let d = page.getByRole('dialog'); await d.getByLabel('Nome', { exact: true }).fill('Pullover GymHub'); await d.getByLabel('Gruppo muscolare').selectOption('Schiena'); await d.getByLabel('Attrezzo').selectOption('Manubri'); await d.getByRole('button', { name: 'Salva', exact: true }).click();
   await expect(main(page).getByRole('heading', { name: 'Pullover GymHub', exact: true })).toBeVisible(); await shot(page, '02-library-mobile');
   await nav(page, 'Schede'); await main(page).getByRole('button', { name: 'Nuova scheda' }).click(); d = page.getByRole('dialog');
+  await d.getByRole('button', { name: /Parti da zero/ }).click(); d = page.getByRole('dialog');
   await d.getByLabel('Nome della scheda').fill('Superset GymHub');
   for (let i=0;i<2;i++) {
     await d.getByRole('button', { name: 'Aggiungi', exact: true }).click();

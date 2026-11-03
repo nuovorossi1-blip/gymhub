@@ -9,6 +9,8 @@ Il tuo spazio per allenarti. Android e browser, open source, senza abbonamento.
 ## Funzioni disponibili
 
 - Libreria iniziale di 26 esercizi; nuovi esercizi, gruppo muscolare, attrezzo e note personali.
+- Versione 0.1.2: apri un esercizio e scegli “Guarda su YouTube”. Tutorial diretti per i 26 esercizi iniziali e collegamenti ai blocchi del video originale per gli otto esercizi della sessione Chris. Disponibili anche durante l'allenamento. Link personale modificabile e conservato nei backup; per gli esercizi nuovi senza video è disponibile una ricerca YouTube esplicitamente indicata.
+- “Nuova scheda” permette di partire da zero o dalla sessione Chris · Schiena. La sua settimana completa e le sessioni petto/gambe non sono ancora inserite; non vengono attribuiti giorni o programmi non verificati. “Pianifica la settimana” assegna le tue schede al calendario personale.
 - Creazione, modifica, riordino, duplicazione e cancellazione delle schede; calendario settimanale.
 - Serie, ripetizioni, carichi, superset (gruppi A–D) e fino a tre drop per serie principale.
 - Versione 0.1.1: intervalli di ripetizioni, tri-set riconosciuti come gruppi di tre esercizi, rest-pause con conteggi diversi per serie e timer breve separato dai drop set.
@@ -22,6 +24,8 @@ Il tuo spazio per allenarti. Android e browser, open source, senza abbonamento.
 - Abitudini quotidiane, giorni consecutivi e traguardi basati sugli allenamenti completati.
 - Esportazione/importazione JSON validata. Su Android si usa la condivisione del sistema; nel browser il download.
 - Utilizzo offline; su Android le risorse sono nell'APK, nel browser sono memorizzate dopo la prima apertura online.
+
+I video si aprono su YouTube, richiedono Internet e possono contenere audio in inglese e pubblicità del fornitore. I tutorial di base sono di ScottHermanFitness, PureGym e Planet Fitness; autore e variante sono indicati prima di aprire il link. Non sono video scaricati o incorporati nell'app. La navigazione su YouTube è soggetta alle condizioni del servizio esterno.
 
 ## Limiti attuali
 

@@ -2,6 +2,23 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { initialState, clone, startWorkout, completeSet, finishWorkout, togglePause, elapsed, swapExercise, sessionStats, foodTotals, recipeTotals, streak, validateBackup, validatePlan } from '../src/domain.js';
 import { backReference, importBackReference } from '../src/references.js';
+import { exerciseVideo, exerciseVideos, youtubeUrl } from '../src/videos.js';
+
+test('video: tutta la libreria ha link diretti, personali validati e conservati nei backup', () => {
+  const state = importBackReference(initialState(), 15);
+  assert.equal(Object.keys(exerciseVideos).length, 34);
+  for (const exercise of state.exercises) assert.match(exerciseVideo(exercise).url, /^https:\/\/www.youtube.com\/watch\?v=[\w-]{11}/);
+  state.exercises[0].videoUrl = 'https://youtu.be/8iPEnn-ltC8?t=30&si=unneeded';
+  const restored = validateBackup(JSON.stringify(state));
+  assert.equal(restored.exercises[0].videoUrl, 'https://www.youtube.com/watch?v=8iPEnn-ltC8&t=30');
+  assert.equal(exerciseVideo(restored.exercises[0]).author, 'Link personale');
+  for (const bad of ['javascript:alert(1)', 'https://example.com/watch?v=8iPEnn-ltC8', 'https://youtube.com.evil.test/watch?v=8iPEnn-ltC8', 'http://youtu.be/8iPEnn-ltC8', 'https://youtube.com/playlist?list=abc', false]) {
+    assert.throws(() => youtubeUrl(bad));
+    state.exercises[0].videoUrl = bad; assert.throws(() => validateBackup(state));
+  }
+  assert.equal(youtubeUrl('https://youtube.com/shorts/8iPEnn-ltC8'), 'https://www.youtube.com/watch?v=8iPEnn-ltC8');
+  assert.equal(exerciseVideo({ id: 'custom' }), null);
+});
 
 test('sessione persistente: carichi, pause e storico mantengono i dati e il volume', () => {
   let state = initialState(); state = startWorkout(state, state.plans[0], 10000);

@@ -5,6 +5,7 @@ import { uid, dayKey, clone, number, text, MUSCLES, EQUIPMENT, validatePlan, sta
 import { load, save, exportData, scheduleRest } from './storage.js';
 import { icon } from './icons.js';
 import { backReference, importBackReference } from './references.js';
+import { exerciseVideo, exerciseVideoSearch, youtubeUrl } from './videos.js';
 
 const root = document.querySelector('#app');
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -63,14 +64,15 @@ function homePage() {
 
 function plansPage() {
   return head('ALLENATI A MODO TUO', 'LE TUE SCHEDE', 'Struttura, personalizza, ripeti.', button('new-plan', 'Nuova scheda', 'plus', 'primary')) +
-    `<section class="panel reference-card"><div><p class="eyebrow">DAL VIDEO DI CHRIS BUMSTEAD</p><h2>SCHIENA, BICIPITI E DELTOIDI</h2><p>2 × 8 con rest-pause · Due tri-set 3 × 8–12 · Finisher 10 × 10</p></div>${button('back-reference', 'Scopri la sessione', 'book', 'secondary')}</section>` +
+    `<section class="panel reference-card"><div><p class="eyebrow">CHRIS BUMSTEAD · SESSIONE DISPONIBILE</p><h2>SCHIENA, BICIPITI E DELTOIDI</h2><p>2 × 8 con rest-pause · Due tri-set 3 × 8–12 · Finisher 10 × 10</p><p>Una sessione verificata dal video. Petto, gambe e altri giorni non ancora inseriti; la sua settimana completa non è definita da questa scheda.</p></div>${button('back-reference', 'Scopri la sessione', 'book', 'secondary')}</section>` +
+    `<div class="section-head"><p class="helper">Le tue schede sono qui sotto. Puoi assegnarle alle date del tuo calendario.</p>${button('schedule', 'Pianifica la settimana', 'clock', 'text-button')}</div>` +
     (state.active ? `<div class="resume-banner">${icon('clock')}<div><strong>Hai un allenamento in corso</strong><span>${esc(state.active.name)}</span></div>${button('resume', 'Riprendi', 'arrow', 'secondary')}</div>` : '') +
     `<div class="plan-grid">${state.plans.map(plan => `<article class="panel plan-card"><div class="section-head"><div class="tile-icon">${icon('dumbbell')}</div>${button('edit-plan', icon('edit'), '', 'icon-button', `data-id="${plan.id}" aria-label="Modifica ${esc(plan.name)}"`)}</div><h2>${esc(plan.name)}</h2><p>${plan.exercises.length} esercizi · ${plan.exercises.reduce((s, e) => s + e.sets, 0)} serie</p><div class="muscle-tags">${[...new Set(plan.exercises.map(r => state.exercises.find(e => e.id === r.exerciseId)?.muscle))].map(m => badge(m)).join('')}</div><ul class="plan-preview">${plan.exercises.slice(0, 4).map(row => `<li><span>${esc(state.exercises.find(e => e.id === row.exerciseId)?.name)}</span><strong>${row.sets} × ${repTarget(row)}</strong></li>`).join('')}</ul>${plan.notes ? `<p class="plan-note">${esc(plan.notes)}</p>` : ''}<div class="card-actions">${button('start', 'Inizia', 'play', 'primary', `data-id="${plan.id}"`)}${button('duplicate-plan', icon('plus'), '', 'icon-button', `data-id="${plan.id}" aria-label="Duplica scheda"`)}${button('delete-plan', icon('trash'), '', 'icon-button danger-text', `data-id="${plan.id}" aria-label="Elimina scheda"`)}</div></article>`).join('')}</div>${!state.plans.length ? empty('dumbbell', 'Spazio al tuo prossimo obiettivo', 'Aggiungi la prima scheda per iniziare.', button('new-plan', 'Crea scheda', 'plus', 'primary')) : ''}`;
 }
 
 function libraryPage() {
   const filtered = state.exercises.filter(e => (!muscle || e.muscle === muscle) && `${e.name} ${e.equipment}`.toLowerCase().includes(libraryQuery.toLowerCase()));
-  return head('COSTRUISCI IL TUO PERCORSO', 'LIBRERIA ESERCIZI', `${state.exercises.length} esercizi, tutto lo spazio per i tuoi.`, button('new-exercise', 'Nuovo esercizio', 'plus', 'primary')) +
+  return head('COSTRUISCI IL TUO PERCORSO', 'LIBRERIA ESERCIZI', `${state.exercises.length} esercizi. Aprine uno per vedere come si esegue su YouTube.`, button('new-exercise', 'Nuovo esercizio', 'plus', 'primary')) +
     `<div class="library-filters"><div class="search-field">${icon('search')}<input id="exercise-search" type="search" placeholder="Cerca esercizio o attrezzo…" aria-label="Cerca esercizio" value="${esc(libraryQuery)}"></div><div class="filter-chips">${['', ...MUSCLES].map(m => button('filter-muscle', m || 'Tutti', '', muscle === m ? 'chip active' : 'chip', `data-muscle="${m}"`)).join('')}</div></div><p class="results-count">${filtered.length} esercizi</p><div class="exercise-list">${filtered.map(e => `<button class="exercise-card" data-action="exercise-detail" data-id="${e.id}"><div class="exercise-monogram">${esc(e.muscle.slice(0, 2).toUpperCase())}</div><div class="exercise-copy"><h3>${esc(e.name)}</h3><p>${esc(e.muscle)} <span>·</span> ${esc(e.equipment)}</p></div>${e.custom ? badge('TUO') : ''}${icon('chevron')}</button>`).join('')}</div>${!filtered.length ? empty('search', 'Nessun esercizio trovato', 'Prova un’altra ricerca oppure aggiungi il tuo esercizio.') : ''}`;
 }
 
@@ -86,6 +88,7 @@ function runnerPage() {
       const group = s.exercises.filter(r => r.group === e.group), groupLabel = group.length === 3 ? 'Tri-set' : 'Superset';
       return `<section class="panel runner-card" id="row-${e.id}">
         <div class="section-head"><div class="runner-title"><span class="exercise-number">${String(i + 1).padStart(2, '0')}</span><div><h2>${esc(e.name)}</h2><p>${esc(e.equipment)} · ${e.rest ? `${e.rest}s recupero` : 'Recupero manuale'} ${e.group ? `· ${groupLabel} ${e.group}` : ''}</p></div></div>${button('swap', icon('swap'), '', 'icon-button', `data-id="${e.id}" aria-label="Sostituisci ${esc(e.name)}" ${e.sets.some(x => x.done) ? 'disabled' : ''}`)}</div>
+        ${button('exercise-detail', 'Come si esegue · YouTube', 'play', 'text-button exercise-demo', `data-id="${e.exerciseId}"`)}
         ${e.group ? `<p class="superset-info">${badge(`${groupLabel.toUpperCase()} ${e.group}`)} ${group.map(r => esc(r.name)).join(' + ')}. Nessuna pausa programmata tra gli esercizi; recupero dopo il giro completo.</p>` : ''}
         ${e.restPauseSeconds ? `<p class="superset-info">${badge('REST-PAUSE')} Pause brevi di ${e.restPauseSeconds}s. Registra le ripetizioni aggiuntive realmente eseguite.</p>` : ''}
         ${e.sameWeight ? '<p class="superset-info">Indicazione del video: mantieni lo stesso peso nelle 10 serie. Registra comunque il carico effettivamente usato.</p>' : ''}
@@ -131,7 +134,7 @@ function morePage() {
 }
 
 function settingsPage() {
-  return head('IL CONTROLLO RESTA A TE', 'IMPOSTAZIONI', 'GymHub 0.1.1 · Anteprima') +
+  return head('IL CONTROLLO RESTA A TE', 'IMPOSTAZIONI', 'GymHub 0.1.2 · Anteprima') +
     `<section class="panel settings-panel"><h2>IL TUO PROFILO</h2><form id="profile-form">${field('Come ti chiami?', input('name', state.settings.name, 'required maxlength="100" autocomplete="given-name"'))}<button class="primary" type="submit">Salva nome</button></form></section><section class="panel settings-panel"><h2>I TUOI DATI</h2><p>Salvati solo qui. Android e browser hanno archivi separati: usa il backup per trasferirli. La disinstallazione dell’app o la cancellazione dei dati del browser elimina l’archivio locale.</p><div class="wrap-actions">${button('export', 'Esporta backup', 'download', 'primary')}${button('import', 'Importa backup', 'plus', 'secondary')}</div><input id="import-file" type="file" accept=".json,application/json" hidden></section><section class="panel settings-panel"><h2>FUNZIONI ONLINE</h2><p>Questa versione include allenamento, diario alimentare manuale, ricette, abitudini e progressi. Sincronizzazione tra dispositivi, community, catalogo video e riconoscimento fotografico con AI richiedono servizi aggiuntivi e non sono ancora disponibili.</p><p>Il timer usa l’orologio del dispositivo. Su Android, concedendo le notifiche, può avvisarti a schermo spento; il sistema può ritardare l’avviso. Nel browser l’avviso sonoro funziona mentre la pagina è attiva.</p></section><section class="panel settings-panel"><h2>OPEN SOURCE</h2><p>Codice originale, licenza MIT. Font Manrope e Barlow Condensed con licenza SIL OFL. Nessun codice, video o immagine di STNDRD incluso.</p><p>Nessun account, nessuna pubblicità, nessun pagamento.</p></section>`;
 }
 
@@ -159,14 +162,18 @@ function modal(title, body, onSubmit, submitLabel = 'Salva') {
 function confirmAction(title, description, action, label = 'Conferma') { return modal(title, `<p>${description}</p>`, action, label); }
 
 function exerciseForm(existing) {
-  modal(existing ? 'MODIFICA ESERCIZIO' : 'NUOVO ESERCIZIO', field('Nome', input('name', existing?.name, 'required maxlength="100"')) + `<div class="form-grid">${field('Gruppo muscolare', `<select name="muscle">${options(MUSCLES, existing?.muscle)}</select>`)}${field('Attrezzo', `<select name="equipment">${options(EQUIPMENT, existing?.equipment)}</select>`)}</div>` + field('Le tue note', `<textarea name="notes" maxlength="4000" rows="3" placeholder="Impostazioni, riferimenti, indicazioni personali…">${esc(existing?.notes)}</textarea>`), async fd => {
-    const row = { id: existing?.id ?? uid(), name: text(fd.get('name'), 'Nome'), muscle: fd.get('muscle'), equipment: fd.get('equipment'), notes: String(fd.get('notes')), custom: existing?.custom ?? true };
+  modal(existing ? 'MODIFICA ESERCIZIO' : 'NUOVO ESERCIZIO', field('Nome', input('name', existing?.name, 'required maxlength="100"')) + `<div class="form-grid">${field('Gruppo muscolare', `<select name="muscle">${options(MUSCLES, existing?.muscle)}</select>`)}${field('Attrezzo', `<select name="equipment">${options(EQUIPMENT, existing?.equipment)}</select>`)}</div>` + field('Video YouTube (facoltativo)', input('videoUrl', existing?.videoUrl, 'type="url" maxlength="500" placeholder="https://www.youtube.com/watch?v=…"')) + '<p class="helper">Puoi usare anche un link youtu.be o Shorts. Lascia vuoto per usare il tutorial della libreria, se disponibile.</p>' + field('Le tue note', `<textarea name="notes" maxlength="4000" rows="3" placeholder="Impostazioni, riferimenti, indicazioni personali…">${esc(existing?.notes)}</textarea>`), async fd => {
+    const videoUrl = youtubeUrl(fd.get('videoUrl'));
+    const row = { id: existing?.id ?? uid(), name: text(fd.get('name'), 'Nome'), muscle: fd.get('muscle'), equipment: fd.get('equipment'), notes: String(fd.get('notes')), custom: existing?.custom ?? true, ...(videoUrl ? { videoUrl } : {}) };
     await update(s => { const i = s.exercises.findIndex(e => e.id === row.id); if (i >= 0) s.exercises[i] = row; else s.exercises.push(row); }); toast('Esercizio salvato');
   });
 }
 function exerciseDetail(id) {
   const e = state.exercises.find(x => x.id === id), logs = state.history.filter(h => h.exercises.some(x => x.exerciseId === id && x.sets.some(s => s.done))).slice(-5).reverse();
-  const d = modal(esc(e.name), `<p>${badge(e.muscle)} ${badge(e.equipment)}</p><p class="preserve-lines">${esc(e.notes || 'Aggiungi le tue note per ritrovarle quando ti alleni.')}</p><button type="button" class="secondary" id="edit-exercise">${icon('edit')} Modifica dettagli</button><h3 class="spaced">Ultime registrazioni</h3>${logs.length ? logs.map(h => `<div class="detail-row"><strong>${dateFmt(h.finishedAt)}</strong><p>${h.exercises.filter(x => x.exerciseId === id).flatMap(x => x.sets).filter(x => x.done).map(s => `${s.kg} kg × ${s.reps}${setSuffix(s)}`).join(' · ')}</p></div>`).join('') : '<p class="muted">Nessuna serie registrata.</p>'}`, null);
+  if (!e) return;
+  const video = exerciseVideo(e);
+  const demo = video ? `<section class="video-reference"><p class="eyebrow">COME SI ESEGUE</p><h3>${esc(video.title)}</h3><p>${esc(video.author)} · ${esc(video.note)}</p><a class="primary" href="${esc(video.url)}" target="_blank" rel="noopener noreferrer">${icon('play')} Guarda su YouTube ${icon('arrow')}</a><p class="helper">Si apre su YouTube. Serve una connessione Internet.</p></section>` : `<section class="video-reference"><h3>Trova la dimostrazione</h3><p>Non hai ancora associato un video a questo esercizio. Cercalo su YouTube e salva il link in “Modifica dettagli”.</p><a class="secondary" href="${esc(exerciseVideoSearch(e))}" target="_blank" rel="noopener noreferrer">${icon('search')} Cerca su YouTube ${icon('arrow')}</a></section>`;
+  const d = modal(esc(e.name), `<p>${badge(e.muscle)} ${badge(e.equipment)}</p>${demo}<p class="preserve-lines">${esc(e.notes || 'Aggiungi le tue note per ritrovarle quando ti alleni.')}</p><button type="button" class="secondary" id="edit-exercise">${icon('edit')} Modifica dettagli</button><h3 class="spaced">Ultime registrazioni</h3>${logs.length ? logs.map(h => `<div class="detail-row"><strong>${dateFmt(h.finishedAt)}</strong><p>${h.exercises.filter(x => x.exerciseId === id).flatMap(x => x.sets).filter(x => x.done).map(s => `${s.kg} kg × ${s.reps}${setSuffix(s)}`).join(' · ')}</p></div>`).join('') : '<p class="muted">Nessuna serie registrata.</p>'}`, null);
   d.querySelector('#edit-exercise').onclick = () => { d.close(); exerciseForm(e); };
 }
 
@@ -193,10 +200,17 @@ function planForm(existing) {
   draw();
 }
 
+function newPlanChoice() {
+  const d = modal('NUOVA SCHEDA', `<p>Scegli da dove partire.</p><div class="plan-choices"><button type="button" class="choice-card" id="blank-plan">${icon('plus')}<span><strong>Parti da zero</strong><small>Scegli tu esercizi, serie e ripetizioni.</small></span>${icon('chevron')}</button><button type="button" class="choice-card" id="reference-plan">${icon('book')}<span><strong>Chris Bumstead · Schiena</strong><small>Sessione verificata, con bicipiti e deltoidi posteriori.</small></span>${icon('chevron')}</button></div><p class="helper">Il video disponibile non definisce tutta la settimana di Chris. Petto, gambe e altri giorni non sono ancora inclusi. Dopo aver creato la scheda, usa “Pianifica la settimana” per scegliere quando allenarti.</p>`, null);
+  d.querySelector('#blank-plan').onclick = () => { d.close(); planForm(); };
+  d.querySelector('#reference-plan').onclick = () => { d.close(); referenceDetail(); };
+}
+
 function referenceDetail() {
   const r = backReference;
   modal('DAL VIDEO · SCHIENA', `<p><strong>${esc(r.title)}</strong><br>${esc(r.author)} · 1 novembre 2026</p><div class="reference-blocks">${r.blocks.map((block, i) => `<article class="reference-block"><span class="eyebrow">BLOCCO ${i + 1}</span><div class="section-head"><h3>${esc(block.title)}</h3>${badge(block.prescription, 'gold-tag')}</div><p>${esc(block.detail)}</p><a class="text-button" href="${r.url}&t=${block.time}s" target="_blank" rel="noopener noreferrer">Guarda da ${Math.floor(block.time / 60)}:${String(block.time % 60).padStart(2, '0')} ${icon('arrow')}</a></article>`).join('')}</div><p class="helper">Serie e intervalli controllati sui cartelli del video; rest-pause controllati anche sul parlato. I recuperi ordinari e tra i giri non sono quantificati: resteranno manuali. Questo è il singolo allenamento pubblico, non l’intero programma dell’app STNDRD.</p>${field('Durata rest-pause (nel video: 10–15 secondi)', '<select name="rpSeconds"><option value="15">15 secondi</option><option value="10">10 secondi</option></select>')}<p class="helper">Con “Aggiungi scheda” crei una copia personale modificabile. Per i rest-pause aggiuntivi registrerai le ripetizioni effettive; per i tri-set vedrai l’obiettivo 8–12.</p>`, async fd => {
     await commit(importBackReference(state, Number(fd.get('rpSeconds'))));
+    if (view !== 'plans') go('plans');
     toast('Scheda dal video aggiunta. Recuperi ordinari manuali.');
   }, 'Aggiungi scheda');
 }
@@ -242,7 +256,7 @@ async function syncRest() {
 const actions = {
   'back-reference': referenceDetail,
   nav: b => go(b.dataset.view),
-  'new-plan': () => planForm(), 'edit-plan': b => planForm(state.plans.find(p => p.id === b.dataset.id)),
+  'new-plan': newPlanChoice, 'edit-plan': b => planForm(state.plans.find(p => p.id === b.dataset.id)),
   'duplicate-plan': b => update(s => { const p = clone(s.plans.find(p => p.id === b.dataset.id)); p.id = uid(); p.name = (p.name + ' · Copia').slice(0, 100); p.exercises.forEach(e => e.id = uid()); s.plans.push(p); }),
   'delete-plan': b => confirmAction('ELIMINARE LA SCHEDA?', 'Lo storico degli allenamenti già completati resterà disponibile.', () => update(s => { s.plans = s.plans.filter(p => p.id !== b.dataset.id); s.schedule = s.schedule.filter(r => r.planId !== b.dataset.id); }), 'Elimina'),
   start: async b => { await commit(startWorkout(state, state.plans.find(p => p.id === b.dataset.id))); go('runner'); },
