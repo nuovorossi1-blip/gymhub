@@ -38,12 +38,22 @@ export function initialState() {
 
 export function validatePlan(plan, state) {
   text(plan.name, 'Nome scheda');
+  if (plan.allowUnevenGroups !== undefined && typeof plan.allowUnevenGroups !== 'boolean') throw new Error('Gruppi non validi.');
   if (!Array.isArray(plan.exercises) || !plan.exercises.length || plan.exercises.length > 80) throw new Error('Aggiungi da 1 a 80 esercizi.');
   const groups = {};
   for (const row of plan.exercises) {
     if (!state.exercises.some(e => e.id === row.exerciseId)) throw new Error('Esercizio non trovato.');
-    number(row.sets, 1, 20, 'Serie'); number(row.reps, 1, 100, 'Ripetizioni'); number(row.rest, 0, 900, 'Recupero'); number(row.drops, 0, 3, 'Drop set');
-    if (![row.sets, row.reps, row.rest, row.drops].every(Number.isInteger)) throw new Error('Usa numeri interi nella scheda.');
+    const flexible = row.targetSeconds != null || row.toFailure || row.freeReps;
+    number(row.sets, 1, 20, 'Serie'); if (!flexible) number(row.reps, 1, 100, 'Ripetizioni');
+    else if (row.reps !== null || row.repsMax != null) throw new Error('Serie a tempo o libere: le ripetizioni effettive si registrano al momento.');
+    number(row.rest, 0, 900, 'Recupero'); number(row.drops, 0, 3, 'Drop set');
+    if (![row.sets, ...(flexible ? [] : [row.reps]), row.rest, row.drops].every(Number.isInteger)) throw new Error('Usa numeri interi nella scheda.');
+    if (row.targetSeconds != null && (!Number.isInteger(row.targetSeconds) || row.targetSeconds < 1 || row.targetSeconds > 600)) throw new Error('Durata serie da 1 a 600 secondi.');
+    for (const key of ['toFailure', 'freeReps', 'warmup', 'dropRepsManual', 'variableDrops']) if (row[key] !== undefined && typeof row[key] !== 'boolean') throw new Error('Indicazione serie non valida.');
+    if (row.groupOffset != null && (!Number.isInteger(row.groupOffset) || row.groupOffset < 0 || row.groupOffset + row.sets > 20)) throw new Error('Giro iniziale non valido.');
+    if (row.warmupSets != null && (!Number.isInteger(row.warmupSets) || row.warmupSets < 0 || row.warmupSets > 10)) throw new Error('Riscaldamento non valido.');
+    if (row.instructions != null && (typeof row.instructions !== 'string' || row.instructions.length > 1500)) throw new Error('Istruzioni non valide.');
+    if (row.label != null) text(row.label, 'Fase');
     if (row.repsMax != null && (!Number.isInteger(row.repsMax) || row.repsMax < row.reps || row.repsMax > 100)) throw new Error('Il massimo ripetizioni deve essere intero, almeno pari al minimo e non oltre 100.');
     if (row.restPause != null && (!Array.isArray(row.restPause) || row.restPause.length !== row.sets || !row.restPause.every(n => Number.isInteger(n) && n >= 0 && n <= 3))) throw new Error('Indica da 0 a 3 rest-pause per ogni serie principale.');
     if (row.restPause?.some(n => n > 0) && (!Number.isInteger(row.restPauseSeconds) || row.restPauseSeconds < 1 || row.restPauseSeconds > 90)) throw new Error('La pausa breve deve durare da 1 a 90 secondi.');
@@ -52,7 +62,7 @@ export function validatePlan(plan, state) {
   }
   for (const rows of Object.values(groups)) {
     if (rows.length < 2) throw new Error('Un superset richiede almeno due esercizi nello stesso gruppo.');
-    if (new Set(rows.map(r => r.sets)).size !== 1) throw new Error('Gli esercizi di un superset devono avere lo stesso numero di serie.');
+    if (!plan.allowUnevenGroups && new Set(rows.map(r => r.sets)).size !== 1) throw new Error('Gli esercizi di un superset devono avere lo stesso numero di serie.');
   }
   return plan;
 }
@@ -63,11 +73,14 @@ export function startWorkout(state, plan, now = Date.now()) {
   const active = { id: uid(), planId: plan.id, name: plan.name, startedAt: now, pausedAt: null, pausedMs: 0, restUntil: null, notes: '', exercises: plan.exercises.map(row => {
     const exercise = state.exercises.find(e => e.id === row.exerciseId);
     const last = [...state.history].reverse().flatMap(h => h.exercises).find(e => e.exerciseId === row.exerciseId);
+    const flexible = row.targetSeconds != null || row.toFailure || row.freeReps;
+    const target = row.targetSeconds ? `${row.targetSeconds} s` : row.toFailure ? 'AMRAP' : row.freeReps ? 'Libere' : row.repsMax ? `${row.reps}–${row.repsMax}` : null;
     return { id: uid(), exerciseId: exercise.id, name: exercise.name, muscle: exercise.muscle, equipment: exercise.equipment, rest: row.rest, group: row.group,
+      ...Object.fromEntries(['targetSeconds','toFailure','freeReps','warmupSets','instructions','label','variableDrops','groupOffset'].filter(k => row[k] != null).map(k => [k,row[k]])),
       ...(row.restPause?.some(n => n > 0) ? { restPauseSeconds: row.restPauseSeconds } : {}), ...(row.sameWeight ? { sameWeight: true } : {}),
-      sets: Array.from({ length: row.sets }, (_, i) => [{ id: uid(), round: i, kind: 'working', kg: last?.sets.find(s => s.done && s.kind === 'working')?.kg ?? 0, reps: row.repsMax ? null : row.reps, ...(row.repsMax ? { target: `${row.reps}–${row.repsMax}` } : {}), done: false },
-        ...Array.from({ length: row.drops }, () => ({ id: uid(), round: i, kind: 'drop', kg: 0, reps: row.reps, done: false })),
-        ...Array.from({ length: row.restPause?.[i] ?? 0 }, () => ({ id: uid(), round: i, kind: 'restpause', kg: 0, reps: null, done: false }))]).flat() };
+      sets: Array.from({ length: row.sets }, (_, i) => [{ id: uid(), round: i + (row.groupOffset || 0), kind: row.warmup ? 'warmup' : 'working', kg: last?.sets.find(s => s.done && s.kind === 'working')?.kg ?? 0, reps: row.repsMax || flexible ? null : row.reps, ...(target ? { target } : {}), done: false },
+        ...Array.from({ length: row.drops }, () => ({ id: uid(), round: i + (row.groupOffset || 0), kind: 'drop', kg: 0, reps: row.dropRepsManual || flexible ? null : row.reps, ...(row.dropRepsManual || flexible ? { target: 'Libere' } : {}), done: false })),
+        ...Array.from({ length: row.restPause?.[i] ?? 0 }, () => ({ id: uid(), round: i + (row.groupOffset || 0), kind: 'restpause', kg: 0, reps: null, done: false }))]).flat() };
   }) };
   return { ...state, active };
 }
@@ -76,11 +89,25 @@ export function elapsed(session, now = Date.now()) {
   return Math.max(0, Math.floor(((session.pausedAt ?? now) - session.startedAt - session.pausedMs) / 1000));
 }
 
+export function startEffort(state, exerciseId, now = Date.now()) {
+  const next = clone(state), row = next.active?.exercises.find(e => e.id === exerciseId);
+  if (!row || next.active.pausedAt || !Number.isInteger(row.targetSeconds) || !row.sets.some(s => !s.done)) throw new Error('Nessuna serie a tempo disponibile.');
+  next.active.effortUntil = now + row.targetSeconds * 1000; next.active.effortRow = row.id; next.active.restUntil = null;
+  return next;
+}
+
+export function addVariableDrop(state, exerciseId) {
+  const next = clone(state), row = next.active?.exercises.find(e => e.id === exerciseId);
+  if (!row?.variableDrops || next.active.pausedAt || row.sets.length >= 24) throw new Error('Riduzione non disponibile.');
+  row.sets.push({ id: uid(), round: 0, kind: 'drop', kg: 0, reps: null, target: 'Libere', done: false });
+  return next;
+}
+
 export function togglePause(state, now = Date.now()) {
   const next = clone(state);
   if (!next.active) throw new Error('Nessun allenamento in corso.');
   if (next.active.pausedAt) { next.active.pausedMs += now - next.active.pausedAt; next.active.pausedAt = null; }
-  else { next.active.pausedAt = now; next.active.restUntil = null; }
+  else { next.active.pausedAt = now; next.active.restUntil = null; next.active.effortUntil = null; }
   return next;
 }
 
@@ -94,6 +121,7 @@ export function completeSet(state, exerciseId, setId, now = Date.now()) {
   number(set.kg, 0, 1500, 'Carico'); number(set.reps, 1, 1000, 'Ripetizioni');
   if (!Number.isInteger(set.reps)) throw new Error('Le ripetizioni devono essere intere.');
   set.done = !set.done;
+  if (session.effortRow === exerciseId) session.effortUntil = null;
   session.restUntil = null;
   session.restKind = null;
   if (!set.done) return next;
@@ -179,17 +207,23 @@ export function validateBackup(input) {
     id(session.id); text(session.name, 'Nome allenamento'); number(session.startedAt, 1, 9e15, 'Inizio'); number(session.pausedMs, 0, 9e15, 'Pausa');
     if (session.pausedAt !== null) number(session.pausedAt, 1, 9e15, 'Pausa');
     if (session.restUntil !== null) number(session.restUntil, 1, 9e15, 'Timer');
+    if (session.effortUntil != null) storedNumber(session.effortUntil, 1, 9e15, 'Timer serie');
+    if (session.effortRow != null) id(session.effortRow);
     if (!Array.isArray(session.exercises) || session.exercises.length > 80) throw new Error('Sessione non valida.');
     for (const e of session.exercises) {
       id(e.id); id(e.exerciseId); text(e.name, 'Nome esercizio'); number(e.rest, 0, 900, 'Recupero');
+      if (e.targetSeconds != null) { storedNumber(e.targetSeconds, 1, 600, 'Durata serie'); if (!Number.isInteger(e.targetSeconds)) throw new Error('Durata serie non valida.'); }
+      if (e.instructions != null && (typeof e.instructions !== 'string' || e.instructions.length > 1500)) throw new Error('Istruzioni non valide.');
+      if (e.label != null) text(e.label, 'Fase');
+      if (e.variableDrops !== undefined && typeof e.variableDrops !== 'boolean') throw new Error('Drop non valido.');
       if (!['', 'A', 'B', 'C', 'D'].includes(e.group) || !Array.isArray(e.sets) || e.sets.length > 160) throw new Error('Serie non valide.');
       if (e.sets.some(set => set.kind === 'restpause')) storedNumber(e.restPauseSeconds, 1, 90, 'Rest-pause');
       for (const set of e.sets) {
         id(set.id); storedNumber(set.kg, 0, 1500, 'Carico'); storedNumber(set.round, 0, 19, 'Giro');
-        if (set.reps === null && !set.done) { if (set.kind !== 'restpause' && !/^\d{1,3}–\d{1,3}$/.test(set.target ?? '')) throw new Error('Obiettivo ripetizioni non valido.'); }
+        if (set.reps === null && !set.done) { if (set.kind !== 'restpause' && !/^(?:\d{1,3}–\d{1,3}|\d{1,3} s|AMRAP|Libere)$/.test(set.target ?? '')) throw new Error('Obiettivo ripetizioni non valido.'); }
         else { storedNumber(set.reps, 1, 1000, 'Ripetizioni'); if (!Number.isInteger(set.reps)) throw new Error('Serie non valida.'); }
         if (!Number.isInteger(set.round) || typeof set.done !== 'boolean' || !['working', 'drop', 'warmup', 'restpause'].includes(set.kind)) throw new Error('Serie non valida.');
-        if (set.target !== undefined && (typeof set.target !== 'string' || !/^\d{1,3}–\d{1,3}$/.test(set.target))) throw new Error('Intervallo ripetizioni non valido.');
+        if (set.target !== undefined && (typeof set.target !== 'string' || !/^(?:\d{1,3}–\d{1,3}|\d{1,3} s|AMRAP|Libere)$/.test(set.target))) throw new Error('Intervallo ripetizioni non valido.');
       }
     }
   };
@@ -200,7 +234,7 @@ export function validateBackup(input) {
   for (const m of s.meals) { text(m.name, 'Pasto'); if (!/^\d{4}-\d{2}-\d{2}$/.test(m.date)) throw new Error('Data pasto non valida.'); for (const k of ['kcal', 'protein', 'carbs', 'fat']) storedNumber(m[k], 0, 1e7, 'Nutrienti pasto'); }
   s.habits.forEach(h => text(h.name, 'Abitudine'));
   for (const [date, ids] of Object.entries(s.checks)) { if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Array.isArray(ids) || ids.length > 1000) throw new Error('Registro abitudini non valido.'); ids.forEach(id); }
-  for (const row of s.schedule) { if (!/^\d{4}-\d{2}-\d{2}$/.test(row.date) || !s.plans.some(p => p.id === row.planId)) throw new Error('Calendario non valido.'); }
+  for (const row of s.schedule) { if (!/^\d{4}-\d{2}-\d{2}$/.test(row.date) || (row.kind !== 'rest' && !s.plans.some(p => p.id === row.planId))) throw new Error('Calendario non valido.'); }
   text(s.settings.name, 'Nome'); number(s.settings.nutritionGoal, 0, 20000, 'Obiettivo calorie');
   return s;
 }

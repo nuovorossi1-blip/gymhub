@@ -1,11 +1,12 @@
 import './style.css';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
-import { uid, dayKey, clone, number, text, MUSCLES, EQUIPMENT, validatePlan, startWorkout, completeSet, swapExercise, finishWorkout, togglePause, elapsed, sessionStats, foodTotals, recipeTotals, streak, validateBackup } from './domain.js';
+import { uid, dayKey, clone, number, text, MUSCLES, EQUIPMENT, validatePlan, startWorkout, startEffort, addVariableDrop, completeSet, swapExercise, finishWorkout, togglePause, elapsed, sessionStats, foodTotals, recipeTotals, streak, validateBackup } from './domain.js';
 import { load, save, exportData, scheduleRest } from './storage.js';
 import { icon } from './icons.js';
 import { backReference, importBackReference } from './references.js';
 import { exerciseVideo, exerciseVideoSearch, youtubeUrl } from './videos.js';
+import { ppl, pplExercises, importPpl, pplDates, schedulePpl } from './ppl.js';
 
 const root = document.querySelector('#app');
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -13,9 +14,9 @@ const fmt = value => new Intl.NumberFormat('it-IT', { maximumFractionDigits: 1 }
 const time = secs => `${Math.floor(secs / 60).toString().padStart(2, '0')}:${Math.floor(secs % 60).toString().padStart(2, '0')}`;
 const dateFmt = value => new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(value));
 const dateTitle = () => new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
-const repTarget = row => row.repsMax ? `${row.reps}–${row.repsMax}` : row.reps;
-const setSuffix = set => set.kind === 'drop' ? ' (drop)' : set.kind === 'restpause' ? ' (rest-pause)' : '';
-let state, view = 'home', libraryQuery = '', muscle = '', nutritionDate = dayKey(), historyExercise = '', toastTimeout, storageError = false, restNotified = null;
+const repTarget = row => row.targetSeconds ? `${row.targetSeconds} s` : row.toFailure ? 'Cedimento' : row.freeReps ? 'Libere' : row.repsMax ? `${row.reps}–${row.repsMax}` : row.reps;
+const setSuffix = set => set.kind === 'drop' ? ' (drop)' : set.kind === 'restpause' ? ' (rest-pause)' : set.kind === 'warmup' ? ' (riscaldamento)' : '';
+let state, view = 'home', libraryQuery = '', muscle = '', nutritionDate = dayKey(), historyExercise = '', toastTimeout, storageError = false, restNotified = null, effortNotified = null;
 let editingPlan = null;
 const viewStack = ['home'];
 
@@ -42,7 +43,7 @@ const head = (eyebrow, title, subtitle = '', actions = '') => `<header class="pa
 
 function shell(content) {
   const nav = [['home', 'Oggi', 'home'], ['plans', 'Schede', 'dumbbell'], ['library', 'Esercizi', 'book'], ['progress', 'Progressi', 'chart'], ['more', 'Altro', 'more']];
-  const active = ['nutrition', 'habits', 'settings', 'recipes'].includes(view) ? 'more' : view === 'runner' ? 'plans' : view;
+  const active = ['nutrition', 'habits', 'settings', 'recipes'].includes(view) ? 'more' : ['runner', 'ppl'].includes(view) ? 'plans' : view;
   return `<aside class="sidebar"><a href="#home" class="brand" data-action="nav" data-view="home">${icon('dumbbell')}<span>GYM<span class="gold">HUB</span><small>IL TUO RITMO.</small></span></a><nav aria-label="Navigazione principale">${nav.map(([key, label, symbol]) => button('nav', label, symbol, active === key ? 'nav-item selected' : 'nav-item', `data-view="${key}" ${active === key ? 'aria-current="page"' : ''}`)).join('')}</nav><div class="sidebar-bottom">${icon('shield')}<strong>Il tuo spazio. I tuoi dati.</strong><span>Open source · Nessun abbonamento</span></div></aside><div class="app-body"><div class="topbar"><span class="mobile-brand">GYM<span>HUB</span></span><span class="today">${dateTitle()}</span><span class="local-status"><i></i> Sul dispositivo</span></div>${storageError ? '<div class="save-error" role="alert">Dati non salvati. Libera spazio ed esporta un backup dalle impostazioni.</div>' : ''}<main id="main">${content}</main></div><nav class="mobile-nav" aria-label="Navigazione mobile">${nav.map(([key, label, symbol]) => button('nav', `<span>${label}</span>`, symbol, active === key ? 'selected' : '', `data-view="${key}" ${active === key ? 'aria-current="page"' : ''}`)).join('')}</nav>`;
 }
 
@@ -53,21 +54,49 @@ function weekDays() {
 function homePage() {
   const week = weekDays(), start = dayKey(week[0]), weekHistory = state.history.filter(h => dayKey(new Date(h.finishedAt)) >= start);
   const volume = weekHistory.reduce((s, h) => s + sessionStats(h).volume, 0);
-  const todayPlan = state.plans.find(p => p.id === state.schedule.find(s => s.date === dayKey())?.planId) ?? state.plans[0];
+  const todayEntry = state.schedule.find(s => s.date === dayKey()), restToday = todayEntry?.kind === 'rest';
+  const todayPlan = restToday ? null : state.plans.find(p => p.id === todayEntry?.planId) ?? state.plans[0];
   const next = state.active;
   return head('IL TUO SPAZIO, OGNI GIORNO', `CIAO, ${esc(state.settings.name)}<span class="gold">.</span>`, 'Un passo alla volta. Ogni allenamento conta.') +
-    `<section class="hero"><div class="hero-copy">${badge(next ? 'ALLENAMENTO IN CORSO' : 'PRONTO QUANDO LO SEI TU', 'gold-tag')}<h2>${next ? 'RIPARTI<br>DA QUI.' : 'IL PROSSIMO<br>PASSO È TUO.'}</h2><p>${next ? esc(next.name) + ' · I tuoi progressi sono salvati.' : 'Concentrati sull’allenamento.<br>Al resto pensiamo noi.'}</p>${button(next ? 'resume' : todayPlan ? 'start' : 'new-plan', next ? 'Riprendi allenamento' : todayPlan ? 'Inizia ad allenarti' : 'Crea la tua scheda', 'play', 'primary', todayPlan ? `data-id="${todayPlan.id}"` : '')}</div><div class="hero-art" aria-hidden="true"><div class="orbit orbit-a"></div><div class="orbit orbit-b"></div>${icon('dumbbell')}<span>FATTO A MODO TUO.</span></div></section>` +
+    `<section class="hero"><div class="hero-copy">${badge(next ? 'ALLENAMENTO IN CORSO' : restToday ? 'RIPOSO PIANIFICATO' : 'PRONTO QUANDO LO SEI TU', 'gold-tag')}<h2>${next ? 'RIPARTI<br>DA QUI.' : restToday ? 'OGGI<br>RECUPERA.' : 'IL PROSSIMO<br>PASSO È TUO.'}</h2><p>${next ? esc(next.name) + ' · I tuoi progressi sono salvati.' : restToday ? 'Il tuo calendario prevede una giornata di riposo.' : 'Concentrati sull’allenamento.<br>Al resto pensiamo noi.'}</p>${button(next ? 'resume' : restToday ? 'nav' : todayPlan ? 'start' : 'new-plan', next ? 'Riprendi allenamento' : restToday ? 'Vedi le schede' : todayPlan ? 'Inizia ad allenarti' : 'Crea la tua scheda', 'play', 'primary', restToday ? 'data-view="plans"' : todayPlan ? `data-id="${todayPlan.id}"` : '')}</div><div class="hero-art" aria-hidden="true"><div class="orbit orbit-a"></div><div class="orbit orbit-b"></div>${icon('dumbbell')}<span>FATTO A MODO TUO.</span></div></section>` +
     `<div class="stats-grid"><article class="stat-card">${icon('dumbbell')}<span>Questa settimana</span><strong>${weekHistory.length}<small> allenamenti</small></strong></article><article class="stat-card">${icon('chart')}<span>Volume settimanale</span><strong>${fmt(volume)}<small> kg</small></strong></article><article class="stat-card">${icon('clock')}<span>Tempo per te</span><strong>${Math.round(weekHistory.reduce((s, h) => s + h.duration, 0) / 60)}<small> minuti</small></strong></article></div>` +
-    `<div class="home-columns"><section class="panel"><div class="section-head"><h2>IL TUO RITMO</h2>${button('schedule', 'Pianifica', 'plus', 'text-button')}</div><div class="week-strip">${week.map(d => { const k = dayKey(d), done = state.history.some(h => dayKey(new Date(h.finishedAt)) === k), planned = state.schedule.some(s => s.date === k); return `<div class="day ${k === dayKey() ? 'is-today' : ''}"><span>${new Intl.DateTimeFormat('it-IT', { weekday: 'short' }).format(d)}</span><strong>${d.getDate()}</strong><i class="${done ? 'done-dot' : planned ? 'plan-dot' : ''}"></i></div>`; }).join('')}</div><div class="week-caption"><span><i class="done-dot"></i> Completato</span><span><i class="plan-dot"></i> Pianificato</span></div>${state.schedule.filter(s => s.date >= dayKey()).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3).map(s => `<div class="schedule-row"><span>${dateFmt(s.date + 'T12:00:00')}</span><strong>${esc(state.plans.find(p => p.id === s.planId)?.name)}</strong>${button('unschedule', icon('close'), '', 'icon-button', `data-id="${s.id}" aria-label="Rimuovi dal calendario"`)}</div>`).join('')}</section><section class="panel"><div class="section-head"><h2>LA TUA SCHEDA</h2>${button('nav', 'Tutte', 'arrow', 'text-button', 'data-view="plans"')}</div>${todayPlan ? `<div class="featured-plan"><div class="tile-icon">${icon('dumbbell')}</div><h3>${esc(todayPlan.name)}</h3><p>${todayPlan.exercises.length} esercizi · ${todayPlan.exercises.reduce((s, e) => s + e.sets, 0)} serie principali</p>${button('edit-plan', 'Personalizza', 'edit', 'secondary', `data-id="${todayPlan.id}"`)}</div>` : empty('book', 'Il tuo percorso inizia qui', 'Crea una scheda con i tuoi esercizi.')}</section></div>` +
-    `<div class="section-head spaced"><h2>OLTRE L’ALLENAMENTO</h2></div><div class="quick-grid">${[['nutrition', 'Nutrizione', 'Pasti, calorie e ricette', 'leaf'], ['habits', 'Le tue abitudini', 'Piccoli gesti, costanza vera', 'target']].map(([v, title, sub, symbol]) => `<button class="quick-card" data-action="nav" data-view="${v}"><div class="tile-icon">${icon(symbol)}</div><div><h3>${title}</h3><p>${sub}</p></div>${icon('chevron')}</button>`).join('')}</div>`;
+    `<div class="home-columns"><section class="panel"><div class="section-head"><h2>IL TUO RITMO</h2>${button('schedule', 'Pianifica', 'plus', 'text-button')}</div><div class="week-strip">${week.map(d => { const k = dayKey(d), done = state.history.some(h => dayKey(new Date(h.finishedAt)) === k), planned = state.schedule.some(s => s.date === k); return `<div class="day ${k === dayKey() ? 'is-today' : ''}"><span>${new Intl.DateTimeFormat('it-IT', { weekday: 'short' }).format(d)}</span><strong>${d.getDate()}</strong><i class="${done ? 'done-dot' : planned ? 'plan-dot' : ''}"></i></div>`; }).join('')}</div><div class="week-caption"><span><i class="done-dot"></i> Completato</span><span><i class="plan-dot"></i> Pianificato</span></div>${state.schedule.filter(s => s.date >= dayKey()).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 3).map(s => `<div class="schedule-row"><span>${dateFmt(s.date + 'T12:00:00')}</span><strong>${esc(s.kind === 'rest' ? 'Riposo' : state.plans.find(p => p.id === s.planId)?.name)}</strong>${button('unschedule', icon('close'), '', 'icon-button', `data-id="${s.id}" aria-label="Rimuovi dal calendario"`)}</div>`).join('')}</section><section class="panel"><div class="section-head"><h2>LA TUA SCHEDA</h2>${button('nav', 'Tutte', 'arrow', 'text-button', 'data-view="plans"')}</div>${todayPlan ? `<div class="featured-plan"><div class="tile-icon">${icon('dumbbell')}</div><h3>${esc(todayPlan.name)}</h3><p>${todayPlan.exercises.length} esercizi · ${todayPlan.exercises.reduce((s, e) => s + e.sets, 0)} serie principali</p>${button('edit-plan', 'Personalizza', 'edit', 'secondary', `data-id="${todayPlan.id}"`)}</div>` : empty('book', 'Il tuo percorso inizia qui', 'Crea una scheda con i tuoi esercizi.')}</section></div>` +
+    weekAgenda() + `<div class="section-head spaced"><h2>OLTRE L’ALLENAMENTO</h2></div><div class="quick-grid">${[['nutrition', 'Nutrizione', 'Pasti, calorie e ricette', 'leaf'], ['habits', 'Le tue abitudini', 'Piccoli gesti, costanza vera', 'target']].map(([v, title, sub, symbol]) => `<button class="quick-card" data-action="nav" data-view="${v}"><div class="tile-icon">${icon(symbol)}</div><div><h3>${title}</h3><p>${sub}</p></div>${icon('chevron')}</button>`).join('')}</div>`;
 }
 
 function plansPage() {
   return head('ALLENATI A MODO TUO', 'LE TUE SCHEDE', 'Struttura, personalizza, ripeti.', button('new-plan', 'Nuova scheda', 'plus', 'primary')) +
-    `<section class="panel reference-card"><div><p class="eyebrow">CHRIS BUMSTEAD · SESSIONE DISPONIBILE</p><h2>SCHIENA, BICIPITI E DELTOIDI</h2><p>2 × 8 con rest-pause · Due tri-set 3 × 8–12 · Finisher 10 × 10</p><p>Una sessione verificata dal video. Petto, gambe e altri giorni non ancora inseriti; la sua settimana completa non è definita da questa scheda.</p></div>${button('back-reference', 'Scopri la sessione', 'book', 'secondary')}</section>` +
+    `<section class="panel reference-card"><div><p class="eyebrow">CHRIS BUMSTEAD · PROGRAMMA COMPLETO 2019</p><h2>PUSH · PULL · GAMBE</h2><p>Sei sedute A/B, esercizi, serie e tecniche dal video ufficiale. Riposi configurabili e calendario con nomi dei giorni.</p></div>${button('nav', 'Apri la split completa', 'book', 'primary', 'data-view="ppl"')}</section>` +
+    `<section class="panel reference-card"><div><p class="eyebrow">CHRIS BUMSTEAD · SESSIONE DISPONIBILE</p><h2>SCHIENA, BICIPITI E DELTOIDI</h2><p>2 × 8 con rest-pause · Due tri-set 3 × 8–12 · Finisher 10 × 10</p><p>Una sessione verificata dal video. Sessione singola del 2026. Il programma completo PPL 2019 è disponibile nella sezione qui sopra.</p></div>${button('back-reference', 'Scopri la sessione', 'book', 'secondary')}</section>` +
     `<div class="section-head"><p class="helper">Le tue schede sono qui sotto. Puoi assegnarle alle date del tuo calendario.</p>${button('schedule', 'Pianifica la settimana', 'clock', 'text-button')}</div>` +
     (state.active ? `<div class="resume-banner">${icon('clock')}<div><strong>Hai un allenamento in corso</strong><span>${esc(state.active.name)}</span></div>${button('resume', 'Riprendi', 'arrow', 'secondary')}</div>` : '') +
     `<div class="plan-grid">${state.plans.map(plan => `<article class="panel plan-card"><div class="section-head"><div class="tile-icon">${icon('dumbbell')}</div>${button('edit-plan', icon('edit'), '', 'icon-button', `data-id="${plan.id}" aria-label="Modifica ${esc(plan.name)}"`)}</div><h2>${esc(plan.name)}</h2><p>${plan.exercises.length} esercizi · ${plan.exercises.reduce((s, e) => s + e.sets, 0)} serie</p><div class="muscle-tags">${[...new Set(plan.exercises.map(r => state.exercises.find(e => e.id === r.exerciseId)?.muscle))].map(m => badge(m)).join('')}</div><ul class="plan-preview">${plan.exercises.slice(0, 4).map(row => `<li><span>${esc(state.exercises.find(e => e.id === row.exerciseId)?.name)}</span><strong>${row.sets} × ${repTarget(row)}</strong></li>`).join('')}</ul>${plan.notes ? `<p class="plan-note">${esc(plan.notes)}</p>` : ''}<div class="card-actions">${button('start', 'Inizia', 'play', 'primary', `data-id="${plan.id}"`)}${button('duplicate-plan', icon('plus'), '', 'icon-button', `data-id="${plan.id}" aria-label="Duplica scheda"`)}${button('delete-plan', icon('trash'), '', 'icon-button danger-text', `data-id="${plan.id}" aria-label="Elimina scheda"`)}</div></article>`).join('')}</div>${!state.plans.length ? empty('dumbbell', 'Spazio al tuo prossimo obiettivo', 'Aggiungi la prima scheda per iniziare.', button('new-plan', 'Crea scheda', 'plus', 'primary')) : ''}`;
+}
+
+function weekAgenda() {
+  return `<section class="panel weekly-agenda"><div class="section-head"><h2>PROSSIMI 7 GIORNI</h2>${button('schedule-ppl','Ciclo PPL','clock','text-button')}</div>${Array.from({length:7},(_,i)=>{const date=new Date();date.setDate(date.getDate()+i);const row=state.schedule.find(s=>s.date===dayKey(date));return `<div class="cycle-day ${row?.kind==='rest'?'rest-day':''}"><span>${new Intl.DateTimeFormat('it-IT',{weekday:'short',day:'numeric',month:'short'}).format(date)}</span><strong>${row?.kind==='rest'?'Riposo':esc(state.plans.find(p=>p.id===row?.planId)?.name??'Non pianificato')}</strong></div>`;}).join('')}</section>`;
+}
+
+function pplPage() {
+  const name = id => state.exercises.find(e => e.id === id)?.name ?? pplExercises.find(e => e[0] === id)?.[1] ?? id;
+  return head('DAL CANALE UFFICIALE · 21 NOVEMBRE 2019', 'LA SPLIT COMPLETA', 'Il programma PPL spiegato da Chris: sei sedute, con varianti A e B.', button('nav', 'Le tue schede', 'arrow', 'secondary', 'data-view="plans"')) +
+    `<section class="panel program-intro"><h2>PUSH A → PULL A → GAMBE A<br>PUSH B → PULL B → GAMBE B</h2><p>${esc(ppl.restNote)}</p><a class="text-button" href="${ppl.video}&t=374s" target="_blank" rel="noopener noreferrer">Guarda la spiegazione dei riposi · 6:14 ${icon('arrow')}</a><p class="helper">Questo è il programma storico del 2019, distinto dalla sessione schiena del 2026. Per le alternative ammesse nel video abbiamo selezionato una variante, indicata nelle istruzioni. I recuperi non quantificati restano manuali; nessun carico o numero di ripetizioni a cedimento è inventato.</p><div class="wrap-actions">${button('import-ppl', 'Aggiungi le 6 schede', 'plus', 'primary')}${button('schedule-ppl', 'Pianifica il ciclo', 'clock', 'secondary')}</div></section>` +
+    `<div class="program-grid">${ppl.sessions.map((s, i) => `<article class="panel program-session"><p class="eyebrow">SEDUTA ${i + 1} DI 6</p><h2>${esc(s.name.toUpperCase())}</h2><p>${esc(s.focus)}</p><ol>${s.exercises.map(r => `<li><div><strong>${esc(name(r.exerciseId))}</strong><span>${r.sets} × ${repTarget(r)}${r.label ? ` · ${esc(r.label)}` : ''}${r.group ? ` · SS ${r.group}${r.groupOffset ? ` dai giri ${r.groupOffset + 1}–${r.groupOffset + r.sets}` : ''}` : ''}${r.drops ? ` + ${r.drops} drop per serie` : ''}${r.warmup ? ' · Riscaldamento' : ''}</span>${r.warmupSets ? `<small>Prima: ${r.warmupSets} serie di riscaldamento, ripetizioni non fissate.</small>` : ''}${r.instructions ? `<small>${esc(r.instructions)}</small>` : ''}</div></li>`).join('')}</ol><a class="text-button" href="${ppl.video}&t=${s.time}s" target="_blank" rel="noopener noreferrer">Spiegazione originale · ${Math.floor(s.time / 60)}:${String(s.time % 60).padStart(2,'0')} ${icon('arrow')}</a></article>`).join('')}</div>`;
+}
+
+function pplScheduleForm() {
+  const restOptions = options([0,1,2,3], 1);
+  const d = modal('PIANIFICA IL CICLO PPL', `<p>Verranno aggiunte le sei schede, se mancanti, e gli appuntamenti. I riposi qui sotto sono una tua distribuzione del ciclo: nel video Chris li gestisce secondo necessità.</p>${field('Data di partenza', input('start', dayKey(), 'type="date" required'))}<div class="form-grid">${field('Giorni di riposo dopo Gambe A', `<select name="restA">${restOptions}</select>`)}${field('Giorni di riposo dopo Gambe B', `<select name="restB">${restOptions}</select>`)}</div>${field('Quanti cicli', '<select name="repeats"><option value="1">1 ciclo</option><option value="2" selected>2 cicli</option><option value="4">4 cicli</option><option value="8">8 cicli</option></select>')}<div id="ppl-preview" class="cycle-preview"></div>`, async fd => {
+    await commit(schedulePpl(state, String(fd.get('start')), Number(fd.get('restA')), Number(fd.get('restB')), Number(fd.get('repeats'))));
+    go('plans'); toast('Ciclo pianificato. Gli appuntamenti precedenti sono conservati.');
+  }, 'Aggiungi schede e calendario');
+  function preview() {
+    const fd = new FormData(d.querySelector('form'));
+    try { const rows = pplDates(String(fd.get('start')), Number(fd.get('restA')), Number(fd.get('restB')), Number(fd.get('repeats')));
+      d.querySelector('#ppl-preview').innerHTML = `<p class="helper">${rows.length} giorni di calendario · Anteprima delle prime ${Math.min(24,rows.length)} date</p>${rows.slice(0,24).map(r => `<div class="cycle-day ${r.kind === 'rest' ? 'rest-day' : ''}"><span>${dateFmt(r.date+'T12:00:00')}</span><strong>${r.name}</strong>${state.schedule.some(s=>s.date===r.date) ? '<small>Data già occupata: scegli un’altra partenza.</small>' : ''}</div>`).join('')}`;
+    } catch(e) { d.querySelector('#ppl-preview').textContent = e.message; }
+  }
+  d.addEventListener('change', preview); preview();
 }
 
 function libraryPage() {
@@ -84,19 +113,24 @@ function runnerPage() {
     `<div class="session-dashboard"><div><span>TEMPO ATTIVO</span><strong id="session-time">${time(elapsed(s))}</strong></div><div><span>SERIE</span><strong>${stats.sets}<small> / ${total}</small></strong></div><div><span>VOLUME</span><strong>${fmt(stats.volume)}<small> kg</small></strong></div></div><div class="session-progress"><div style="width:${total ? stats.sets / total * 100 : 0}%"></div></div>` +
     (s.pausedAt ? `<div class="resume-banner"><strong>Allenamento in pausa</strong><span>Il tempo attivo è fermo.</span></div>` : '') +
     `<div id="rest-panel" class="rest-panel" ${!s.restUntil ? 'hidden' : ''}><div>${icon('clock')}<span>${s.restKind === 'restpause' ? 'REST-PAUSE' : 'RECUPERO'}</span><strong id="rest-time">00:00</strong></div><div>${button('rest-add', s.restKind === 'restpause' ? '+5 s' : '+30 s', '', 'small-button')}${button('rest-skip', 'Salta', '', 'small-button')}</div></div>` +
+    (s.effortUntil ? `<div class="rest-panel effort-panel" id="effort-panel"><div>${icon('clock')}<span>SERIE IN CORSO</span><strong id="effort-time">00:00</strong></div>${button('effort-stop','Ferma','','small-button')}</div>` : '') +
     `<div class="runner-list">${s.exercises.map((e, i) => {
-      const group = s.exercises.filter(r => r.group === e.group), groupLabel = group.length === 3 ? 'Tri-set' : 'Superset';
+      const group = [...new Map(s.exercises.filter(r => r.group === e.group).map(r=>[r.exerciseId,r])).values()], groupLabel = group.length === 3 ? 'Tri-set' : 'Superset';
       return `<section class="panel runner-card" id="row-${e.id}">
         <div class="section-head"><div class="runner-title"><span class="exercise-number">${String(i + 1).padStart(2, '0')}</span><div><h2>${esc(e.name)}</h2><p>${esc(e.equipment)} · ${e.rest ? `${e.rest}s recupero` : 'Recupero manuale'} ${e.group ? `· ${groupLabel} ${e.group}` : ''}</p></div></div>${button('swap', icon('swap'), '', 'icon-button', `data-id="${e.id}" aria-label="Sostituisci ${esc(e.name)}" ${e.sets.some(x => x.done) ? 'disabled' : ''}`)}</div>
         ${button('exercise-detail', 'Come si esegue · YouTube', 'play', 'text-button exercise-demo', `data-id="${e.exerciseId}"`)}
+        ${e.label ? `<p class="superset-info">${badge(esc(e.label))}</p>` : ''}${e.instructions ? `<p class="superset-info">${esc(e.instructions)}</p>` : ''}
+        ${e.warmupSets ? `<p class="superset-info">Prima delle serie sotto: ${e.warmupSets} serie di riscaldamento, ripetizioni non fissate nel prospetto.</p>` : ''}
+        ${e.targetSeconds ? `<p class="superset-info">Obiettivo: ${e.targetSeconds} secondi per serie. Registra poi le ripetizioni effettive.</p>${button('effort-start',`Avvia serie ${e.targetSeconds}s`,'clock','secondary',`data-id="${e.id}" ${s.pausedAt?'disabled':''}`)}` : ''}
         ${e.group ? `<p class="superset-info">${badge(`${groupLabel.toUpperCase()} ${e.group}`)} ${group.map(r => esc(r.name)).join(' + ')}. Nessuna pausa programmata tra gli esercizi; recupero dopo il giro completo.</p>` : ''}
         ${e.restPauseSeconds ? `<p class="superset-info">${badge('REST-PAUSE')} Pause brevi di ${e.restPauseSeconds}s. Registra le ripetizioni aggiuntive realmente eseguite.</p>` : ''}
         ${e.sameWeight ? '<p class="superset-info">Indicazione del video: mantieni lo stesso peso nelle 10 serie. Registra comunque il carico effettivamente usato.</p>' : ''}
         <div class="set-table"><div class="set-header"><span>SERIE</span><span>KG</span><span>RIP.</span><span>FATTO</span></div>${e.sets.map(set => {
           const suffix = set.kind === 'drop' ? ' drop' : set.kind === 'restpause' ? ' rest-pause' : '';
-          return `<div class="set-row ${set.done ? 'completed' : ''} ${set.kind !== 'working' ? 'drop-row' : ''}"><span class="set-number">${set.kind === 'drop' ? '<small>DROP</small>' : set.kind === 'restpause' ? '<small>R.P.</small>' : set.round + 1}</span><input aria-label="Carico ${esc(e.name)} serie ${set.round + 1}${suffix}" type="number" min="0" max="1500" step="0.5" inputmode="decimal" value="${set.kg}" data-set="${set.id}" data-row="${e.id}" data-property="kg" ${s.pausedAt || set.done ? 'disabled' : ''}><input aria-label="Ripetizioni ${esc(e.name)} serie ${set.round + 1}${suffix}" type="number" min="1" max="1000" step="1" inputmode="numeric" value="${set.reps ?? ''}" placeholder="${esc(set.target ?? 'R.P.')}" title="${set.target ? 'Obiettivo ' + esc(set.target) + ': inserisci le ripetizioni effettive' : 'Ripetizioni effettivamente eseguite'}" data-set="${set.id}" data-row="${e.id}" data-property="reps" ${s.pausedAt || set.done ? 'disabled' : ''}><button class="set-check ${set.done ? 'is-done' : ''}" data-action="complete-set" data-row="${e.id}" data-id="${set.id}" aria-label="${set.done ? 'Annulla' : 'Completa'} serie ${set.round + 1} ${esc(e.name)}${suffix}" aria-pressed="${set.done}" ${s.pausedAt ? 'disabled' : ''}>${icon('check')}</button></div>`;
+          return `<div class="set-row ${set.done ? 'completed' : ''} ${set.kind !== 'working' ? 'drop-row' : ''}"><span class="set-number">${set.kind === 'drop' ? '<small>DROP</small>' : set.kind === 'restpause' ? '<small>R.P.</small>' : set.kind === 'warmup' ? '<small>RISC.</small>' : set.round + 1}</span><input aria-label="Carico ${esc(e.name)} serie ${set.round + 1}${suffix}" type="number" min="0" max="1500" step="0.5" inputmode="decimal" value="${set.kg}" data-set="${set.id}" data-row="${e.id}" data-property="kg" ${s.pausedAt || set.done ? 'disabled' : ''}><input aria-label="Ripetizioni ${esc(e.name)} serie ${set.round + 1}${suffix}" type="number" min="1" max="1000" step="1" inputmode="numeric" value="${set.reps ?? ''}" placeholder="${esc(set.target ?? 'R.P.')}" title="${set.target ? 'Obiettivo ' + esc(set.target) + ': inserisci le ripetizioni effettive' : 'Ripetizioni effettivamente eseguite'}" data-set="${set.id}" data-row="${e.id}" data-property="reps" ${s.pausedAt || set.done ? 'disabled' : ''}><button class="set-check ${set.done ? 'is-done' : ''}" data-action="complete-set" data-row="${e.id}" data-id="${set.id}" aria-label="${set.done ? 'Annulla' : 'Completa'} serie ${set.round + 1} ${esc(e.name)}${suffix}" aria-pressed="${set.done}" ${s.pausedAt ? 'disabled' : ''}>${icon('check')}</button></div>`;
         }).join('')}</div>
         ${!e.rest ? button('manual-rest', 'Avvia un recupero', 'clock', 'text-button', s.pausedAt ? 'disabled' : '') : ''}
+        ${e.variableDrops ? button('variable-drop','Aggiungi riduzione','plus','secondary',`data-id="${e.id}" ${s.pausedAt?'disabled':''}`) : ''}
       </section>`;
     }).join('')}</div><div class="session-footer">${button('finish', 'Concludi allenamento', 'check', 'primary')}${button('discard', 'Annulla allenamento', '', 'text-button danger-text')}</div>`;
 }
@@ -134,12 +168,12 @@ function morePage() {
 }
 
 function settingsPage() {
-  return head('IL CONTROLLO RESTA A TE', 'IMPOSTAZIONI', 'GymHub 0.1.2 · Anteprima') +
+  return head('IL CONTROLLO RESTA A TE', 'IMPOSTAZIONI', 'GymHub 0.1.3 · Anteprima') +
     `<section class="panel settings-panel"><h2>IL TUO PROFILO</h2><form id="profile-form">${field('Come ti chiami?', input('name', state.settings.name, 'required maxlength="100" autocomplete="given-name"'))}<button class="primary" type="submit">Salva nome</button></form></section><section class="panel settings-panel"><h2>I TUOI DATI</h2><p>Salvati solo qui. Android e browser hanno archivi separati: usa il backup per trasferirli. La disinstallazione dell’app o la cancellazione dei dati del browser elimina l’archivio locale.</p><div class="wrap-actions">${button('export', 'Esporta backup', 'download', 'primary')}${button('import', 'Importa backup', 'plus', 'secondary')}</div><input id="import-file" type="file" accept=".json,application/json" hidden></section><section class="panel settings-panel"><h2>FUNZIONI ONLINE</h2><p>Questa versione include allenamento, diario alimentare manuale, ricette, abitudini e progressi. Sincronizzazione tra dispositivi, community, catalogo video e riconoscimento fotografico con AI richiedono servizi aggiuntivi e non sono ancora disponibili.</p><p>Il timer usa l’orologio del dispositivo. Su Android, concedendo le notifiche, può avvisarti a schermo spento; il sistema può ritardare l’avviso. Nel browser l’avviso sonoro funziona mentre la pagina è attiva.</p></section><section class="panel settings-panel"><h2>OPEN SOURCE</h2><p>Codice originale, licenza MIT. Font Manrope e Barlow Condensed con licenza SIL OFL. Nessun codice, video o immagine di STNDRD incluso.</p><p>Nessun account, nessuna pubblicità, nessun pagamento.</p></section>`;
 }
 
 function render() {
-  const pages = { home: homePage, plans: plansPage, library: libraryPage, runner: runnerPage, progress: progressPage, nutrition: nutritionPage, recipes: recipesPage, habits: habitsPage, more: morePage, settings: settingsPage };
+  const pages = { home: homePage, plans: plansPage, ppl: pplPage, library: libraryPage, runner: runnerPage, progress: progressPage, nutrition: nutritionPage, recipes: recipesPage, habits: habitsPage, more: morePage, settings: settingsPage };
   root.innerHTML = shell((pages[view] ?? homePage)()); tick();
 }
 
@@ -188,10 +222,15 @@ function planForm(existing) {
   function draw() {
     d.querySelector('#plan-rows').innerHTML = draft.exercises.map((row, i) => `<div class="plan-editor-row" data-plan-row="${row.id}"><div class="section-head"><strong class="eyebrow">ESERCIZIO ${i + 1}</strong><div class="row-controls"><button type="button" class="small-button" data-move="-1" data-id="${row.id}" ${i === 0 ? 'disabled' : ''} aria-label="Sposta esercizio in alto">↑</button><button type="button" class="small-button" data-move="1" data-id="${row.id}" ${i === draft.exercises.length - 1 ? 'disabled' : ''} aria-label="Sposta esercizio in basso">↓</button><button type="button" class="icon-button" data-remove="${row.id}" aria-label="Rimuovi esercizio">${icon('trash')}</button></div></div><select aria-label="Esercizio ${i + 1}" data-prop="exerciseId">${exerciseOptions(row.exerciseId)}</select><div class="prescription-grid">${[['sets', 'Serie', 1, 20], ['reps', 'Rip.', 1, 100], ['rest', 'Rec. s', 0, 900], ['drops', 'Drop', 0, 3]].map(([key, label, min, max]) => field(label, `<input type="number" value="${row[key]}" min="${min}" max="${max}" step="1" required data-prop="${key}" aria-label="${label} esercizio ${i + 1}">`)).join('')}</div>${field('Massimo ripetizioni (facoltativo)', `<input type="number" min="${row.reps}" max="100" value="${row.repsMax ?? ''}" data-prop="repsMax" placeholder="Es. 12">`)}<div class="form-grid">${field('Rest-pause per serie', `<input type="text" maxlength="80" value="${row.restPause?.join(',') ?? '0'}" data-prop="restPause" placeholder="Es. 1,2">`)}${field('Pausa breve (secondi)', `<input type="number" min="1" max="90" value="${row.restPauseSeconds ?? 15}" data-prop="restPauseSeconds">`)}</div><p class="helper">Rest-pause: 0 per nessuno, 1 per uno in ogni serie, oppure valori separati da virgola (es. 1,2).</p>${field('Gruppo superset', `<select data-prop="group"><option value="">Nessuno · Serie normali</option>${options(['A', 'B', 'C', 'D'], row.group)}</select>`)}</div>`).join('') || '<div class="empty-inline">Aggiungi gli esercizi della tua scheda.</div>';
   }
+  const baseDraw = draw;
+  draw = () => { baseDraw(); enhancePlanRows(d,draft); };
   d.querySelector('#plan-add').onclick = () => { draft.exercises.push({ id: uid(), exerciseId: state.exercises[0].id, sets: 3, reps: 10, rest: 90, drops: 0, group: '' }); draw(); };
   d.addEventListener('change', e => { const row = draft.exercises.find(r => r.id === e.target.closest('[data-plan-row]')?.dataset.planRow); if (row && e.target.dataset.prop) {
     const prop = e.target.dataset.prop, value = e.target.value;
-    if (prop === 'restPause') { const counts = value.split(',').map(v => Number(v.trim())); row.restPause = counts.length === 1 ? Array(row.sets).fill(counts[0]) : counts; row.restPauseSeconds ??= 15; }
+    if (prop === 'mode') { delete row.targetSeconds; delete row.toFailure; delete row.freeReps; delete row.repsMax; if(value==='reps')row.reps=8;else{row.reps=null;if(value==='time')row.targetSeconds=40;if(value==='failure')row.toFailure=true;if(value==='free')row.freeReps=true;}draw(); }
+    else if (prop === 'instructions') row.instructions=value;
+    else if (prop === 'warmupSets' && value === '') delete row.warmupSets;
+    else if (prop === 'restPause') { const counts = value.split(',').map(v => Number(v.trim())); row.restPause = counts.length === 1 ? Array(row.sets).fill(counts[0]) : counts; row.restPauseSeconds ??= 15; }
     else if (prop === 'repsMax' && value === '') delete row.repsMax;
     else row[prop] = ['exerciseId', 'group'].includes(prop) ? value : Number(value);
     if (prop === 'sets' && row.restPause && Number.isInteger(row.sets) && row.sets >= 1 && row.sets <= 20) { row.restPause = Array.from({length:row.sets}, (_,i) => row.restPause[i] ?? 0); draw(); }
@@ -200,9 +239,21 @@ function planForm(existing) {
   draw();
 }
 
+function enhancePlanRows(d,draft) {
+  for (const node of d.querySelectorAll('[data-plan-row]')) {
+    const row=draft.exercises.find(r=>r.id===node.dataset.planRow), i=draft.exercises.indexOf(row)+1;
+    const mode=row.targetSeconds?'time':row.toFailure?'failure':row.freeReps?'free':'reps';
+    const control=document.createElement('div');control.className='extra-prescription';
+    control.innerHTML=field('Tipo di serie',`<select data-prop="mode" aria-label="Tipo di serie esercizio ${i}"><option value="reps" ${mode==='reps'?'selected':''}>Ripetizioni</option><option value="time" ${mode==='time'?'selected':''}>A tempo</option><option value="failure" ${mode==='failure'?'selected':''}>A cedimento</option><option value="free" ${mode==='free'?'selected':''}>Ripetizioni libere</option></select>`)+(mode==='time'?field('Durata serie (secondi)',`<input type="number" min="1" max="600" value="${row.targetSeconds}" data-prop="targetSeconds" required>`):'')+field('Serie di riscaldamento prima di questo blocco',`<input type="number" min="0" max="10" value="${row.warmupSets??''}" data-prop="warmupSets">`)+field('Istruzioni',`<textarea maxlength="1500" data-prop="instructions">${esc(row.instructions??'')}</textarea>`)+(draft.allowUnevenGroups?field('Giro iniziale superset (0 = primo giro)',`<input type="number" min="0" max="19" value="${row.groupOffset??0}" data-prop="groupOffset">`):'');
+    node.append(control);
+    if(mode!=='reps') { const input=node.querySelector('[data-prop="reps"]');input.disabled=true;input.required=false;input.value=''; node.querySelector('[data-prop="repsMax"]').closest('.field').hidden=true; }
+  }
+}
+
 function newPlanChoice() {
-  const d = modal('NUOVA SCHEDA', `<p>Scegli da dove partire.</p><div class="plan-choices"><button type="button" class="choice-card" id="blank-plan">${icon('plus')}<span><strong>Parti da zero</strong><small>Scegli tu esercizi, serie e ripetizioni.</small></span>${icon('chevron')}</button><button type="button" class="choice-card" id="reference-plan">${icon('book')}<span><strong>Chris Bumstead · Schiena</strong><small>Sessione verificata, con bicipiti e deltoidi posteriori.</small></span>${icon('chevron')}</button></div><p class="helper">Il video disponibile non definisce tutta la settimana di Chris. Petto, gambe e altri giorni non sono ancora inclusi. Dopo aver creato la scheda, usa “Pianifica la settimana” per scegliere quando allenarti.</p>`, null);
+  const d = modal('NUOVA SCHEDA', `<p>Scegli da dove partire.</p><div class="plan-choices"><button type="button" class="choice-card" id="blank-plan">${icon('plus')}<span><strong>Parti da zero</strong><small>Scegli tu esercizi, serie e ripetizioni.</small></span>${icon('chevron')}</button><button type="button" class="choice-card" id="reference-plan">${icon('book')}<span><strong>Chris Bumstead · Schiena</strong><small>Sessione verificata, con bicipiti e deltoidi posteriori.</small></span>${icon('chevron')}</button><button type="button" class="choice-card" id="ppl-plan"><span><strong>Split completa · PPL 2019</strong><small>Tutte le sei sedute A/B e il calendario del ciclo.</small></span></button></div><p class="helper">La sessione schiena 2026 è singola. Per tutte le sedute scegli il programma completo PPL 2019, con riposi configurabili.</p>`, null);
   d.querySelector('#blank-plan').onclick = () => { d.close(); planForm(); };
+  d.querySelector('#ppl-plan').onclick = () => { d.close(); go('ppl'); };
   d.querySelector('#reference-plan').onclick = () => { d.close(); referenceDetail(); };
 }
 
@@ -254,6 +305,11 @@ async function syncRest() {
 }
 
 const actions = {
+  'import-ppl': async () => { await commit(importPpl(state)); go('plans'); toast('Le sei schede PPL sono disponibili. Le copie già presenti non sono state sovrascritte.'); },
+  'schedule-ppl': pplScheduleForm,
+  'effort-start': async b => { await commit(startEffort(state,b.dataset.id)); effortNotified=null; await syncRest(); },
+  'effort-stop': () => update(s=>s.active.effortUntil=null),
+  'variable-drop': b => commit(addVariableDrop(state,b.dataset.id)),
   'back-reference': referenceDetail,
   nav: b => go(b.dataset.view),
   'new-plan': newPlanChoice, 'edit-plan': b => planForm(state.plans.find(p => p.id === b.dataset.id)),
@@ -342,6 +398,8 @@ function tick() {
   if (!s) return;
   const clock = document.querySelector('#session-time'); if (clock) clock.textContent = time(elapsed(s));
   const rest = document.querySelector('#rest-time');
+  const effort = document.querySelector('#effort-time');
+  if (effort && s.effortUntil) { const left=Math.max(0,Math.ceil((s.effortUntil-Date.now())/1000)); effort.textContent=left?time(left):'TERMINATA'; if(!left&&effortNotified!==s.effortUntil){effortNotified=s.effortUntil;beep();toast('Serie a tempo terminata: registra le ripetizioni effettive.');} }
   if (rest && s.restUntil) {
     const left = Math.max(0, Math.ceil((s.restUntil - Date.now()) / 1000)); rest.textContent = left ? time(left) : 'PRONTO';
     if (!left && restNotified !== s.restUntil) { restNotified = s.restUntil; beep(); toast('Recupero terminato'); }

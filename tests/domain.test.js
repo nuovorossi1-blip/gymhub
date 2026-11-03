@@ -3,10 +3,52 @@ import assert from 'node:assert/strict';
 import { initialState, clone, startWorkout, completeSet, finishWorkout, togglePause, elapsed, swapExercise, sessionStats, foodTotals, recipeTotals, streak, validateBackup, validatePlan } from '../src/domain.js';
 import { backReference, importBackReference } from '../src/references.js';
 import { exerciseVideo, exerciseVideos, youtubeUrl } from '../src/videos.js';
+import { ppl, importPpl, pplDates, schedulePpl } from '../src/ppl.js';
+import { startEffort, addVariableDrop } from '../src/domain.js';
+
+test('PPL completo: sei sedute dei prospetti, serie diseguali e nessuna copia sovrascritta', () => {
+  const state=initialState(), original=clone(state); let next=importPpl(state);
+  assert.deepEqual(state,original);assert.equal(next.plans.length,7);
+  assert.deepEqual(next.plans.slice(1).map(p=>p.exercises.reduce((n,r)=>n+r.sets,0)),[20,17,19,19,17,20]);
+  for(const plan of next.plans.slice(1)) { validatePlan(plan,next); validateBackup(startWorkout(next,plan,10000)); }
+  next.plans[1].name='La mia copia';next=importPpl(next);assert.equal(next.plans.length,7);assert.equal(next.plans[1].name,'La mia copia');
+  assert.deepEqual(ppl.sessions.map(s=>s.name),['Push A','Pull A','Gambe A','Push B','Pull B','Gambe B']);
+});
+
+test('ciclo PPL: date locali attraverso DST, riposi scelti, conflitti senza perdita calendario', () => {
+  const dates=pplDates('2026-10-23',1,1,1);
+  assert.deepEqual(dates.map(d=>d.date),['2026-10-23','2026-10-24','2026-10-25','2026-10-26','2026-10-27','2026-10-28','2026-10-29','2026-10-30']);
+  assert.deepEqual(dates.map(d=>d.name),['Push A','Pull A','Gambe A','Riposo','Push B','Pull B','Gambe B','Riposo']);
+  assert.equal(pplDates('2026-10-23',0,0,1).length,6);
+  const state=schedulePpl(initialState(),'2026-10-23',1,1,2);assert.equal(state.schedule.length,16);validateBackup(state);
+  const before=clone(state);assert.throws(()=>schedulePpl(state,'2026-10-24',1,1,1),/già pianificato/);assert.deepEqual(state,before);
+  assert.throws(()=>pplDates('2026-02-30',1,1,1));assert.throws(()=>pplDates('2026-10-23',-1,1,1));
+});
+
+test('serie40s e cedimento: nessuna ripetizione inventata, timer persistente e pause annullano sforzo', () => {
+  let state=importPpl(initialState()), plan=state.plans.find(p=>p.sourceId?.endsWith('pull-a'));state=startWorkout(state,plan,10000);
+  const timed=state.active.exercises.find(e=>e.targetSeconds===40);assert.equal(timed.sets[0].reps,null);assert.equal(timed.sets[0].target,'40 s');
+  state=startEffort(state,timed.id,20000);state=validateBackup(JSON.stringify(state));assert.equal(state.active.effortUntil,60000);
+  assert.throws(()=>completeSet(state,timed.id,timed.sets[0].id,30000),/Ripetizioni/);
+  const row=state.active.exercises.find(e=>e.id===timed.id);row.sets[0].kg=10;row.sets[0].reps=15;
+  state=completeSet(state,row.id,row.sets[0].id,60000);assert.equal(state.active.effortUntil,null);assert.equal(sessionStats(state.active).volume,150);
+  state=startEffort(state,timed.id,70000);state=togglePause(state,75000);assert.equal(state.active.effortUntil,null);
+  assert.equal(state.active.exercises.find(e=>e.toFailure).sets[0].target,'AMRAP');
+});
+
+test('giri sfalsati polpacci/curl e run-the-rack senza numero drop imposto', () => {
+  let state=importPpl(initialState());state=startWorkout(state,state.plans.find(p=>p.sourceId?.endsWith('legs-a')),10000);
+  const calves=state.active.exercises.find(e=>e.exerciseId==='ppl19-seated-calf'), curls=state.active.exercises.filter(e=>e.exerciseId==='ppl19-lying-curl');
+  assert.deepEqual(calves.sets.map(s=>s.round),[0,1,2,3,4,5]);assert.deepEqual(curls.flatMap(e=>e.sets.map(s=>s.round)),[2,3,4,5]);
+  state=importPpl(initialState());state=startWorkout(state,state.plans.find(p=>p.sourceId?.endsWith('pull-b')),10000);
+  const drop=state.active.exercises.find(e=>e.variableDrops);assert.equal(drop.sets.length,1);state=addVariableDrop(state,drop.id);state=addVariableDrop(state,drop.id);
+  assert.deepEqual(state.active.exercises.find(e=>e.id===drop.id).sets.map(s=>s.kind),['working','drop','drop']);validateBackup(state);
+  assert.equal(state.active.exercises[0].sets[0].kind,'warmup');
+});
 
 test('video: tutta la libreria ha link diretti, personali validati e conservati nei backup', () => {
   const state = importBackReference(initialState(), 15);
-  assert.equal(Object.keys(exerciseVideos).length, 34);
+  assert.equal(Object.keys(exerciseVideos).length, 52);
   for (const exercise of state.exercises) assert.match(exerciseVideo(exercise).url, /^https:\/\/www.youtube.com\/watch\?v=[\w-]{11}/);
   state.exercises[0].videoUrl = 'https://youtu.be/8iPEnn-ltC8?t=30&si=unneeded';
   const restored = validateBackup(JSON.stringify(state));

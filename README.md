@@ -10,8 +10,10 @@ Il tuo spazio per allenarti. Android e browser, open source, senza abbonamento.
 
 - Libreria iniziale di 26 esercizi; nuovi esercizi, gruppo muscolare, attrezzo e note personali.
 - Versione 0.1.2: apri un esercizio e scegli “Guarda su YouTube”. Tutorial diretti per i 26 esercizi iniziali e collegamenti ai blocchi del video originale per gli otto esercizi della sessione Chris. Disponibili anche durante l'allenamento. Link personale modificabile e conservato nei backup; per gli esercizi nuovi senza video è disponibile una ricerca YouTube esplicitamente indicata.
-- “Nuova scheda” permette di partire da zero o dalla sessione Chris · Schiena. La sua settimana completa e le sessioni petto/gambe non sono ancora inserite; non vengono attribuiti giorni o programmi non verificati. “Pianifica la settimana” assegna le tue schede al calendario personale.
+- “Nuova scheda” permette di partire da zero, dalla sessione Chris · Schiena2026 o dal PPL completo2019. “Pianifica la settimana” assegna schede singole; “Pianifica il ciclo” distribuisce tutte le sei sedute e i riposi.
 - Creazione, modifica, riordino, duplicazione e cancellazione delle schede; calendario settimanale.
+- Versione 0.1.3: programma completo PPL di Chris Bumstead dal video ufficiale del 21/11/2019, con tutte le sei sedute Push A/Pull A/Gambe A/Push B/Pull B/Gambe B. Fonte e minutaggi in Schede → Apri la split completa. Importazione delle sei schede senza sovrascrivere copie esistenti; calendario con riposi scelti dall'utente e controllo conflitti.
+- Serie a tempo (40s nel programma), timer visivo persistente, cedimento/ripetizioni libere, back-off, superset con giri sfalsati, drop nell'ultima serie e run-the-rack con riduzioni registrate a scelta. Nessun numero di ripetizioni effettive inventato per tempo o cedimento. Riscaldamenti e alternative sono esplicitati nelle istruzioni.
 - Serie, ripetizioni, carichi, superset (gruppi A–D) e fino a tre drop per serie principale.
 - Versione 0.1.1: intervalli di ripetizioni, tri-set riconosciuti come gruppi di tre esercizi, rest-pause con conteggi diversi per serie e timer breve separato dai drop set.
 - Riferimento video pubblico “This Back Workout Won Me 6 Olympias” di Chris Bumstead, con minutaggi e creazione di una copia personale. Dati controllati sui cartelli originali e sui sottotitoli; nessun video o fotogramma distribuito. I recuperi ordinari non indicati rimangono manuali. Le ripetizioni effettive nei range e nei rest-pause vanno registrate, non sono inventate.
@@ -26,6 +28,8 @@ Il tuo spazio per allenarti. Android e browser, open source, senza abbonamento.
 - Utilizzo offline; su Android le risorse sono nell'APK, nel browser sono memorizzate dopo la prima apertura online.
 
 I video si aprono su YouTube, richiedono Internet e possono contenere audio in inglese e pubblicità del fornitore. I tutorial di base sono di ScottHermanFitness, PureGym e Planet Fitness; autore e variante sono indicati prima di aprire il link. Non sono video scaricati o incorporati nell'app. La navigazione su YouTube è soggetta alle condizioni del servizio esterno.
+
+Il PPL 2019 è una rotazione di sei sedute, non una settimana lunedì–domenica prefissata: nel video Chris inserisce riposi quando ne sente necessità. “Pianifica il ciclo” permette una distribuzione personale (per esempio una pausa dopo ciascuna terna); questa distribuzione non viene attribuita a Chris. La sessione schiena2026 rimane una fonte separata. I nuovi esercizi specifici del PPL collegano alla spiegazione del programma nel video, indicata come tale, non a un tutorial pratico isolato. Il timer delle serie è visivo; gli avvisi in background riguardano il timer di recupero.
 
 ## Limiti attuali
 

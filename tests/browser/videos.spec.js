@@ -32,7 +32,7 @@ test('tutorial esterno da libreria e allenamento, link personale e accesso sched
   await d.getByRole('button', { name: 'Chiudi', exact: true }).click();
   await page.locator('.mobile-nav').getByRole('button', { name: 'Schede', exact: true }).click();
   await page.getByRole('button', { name: 'Nuova scheda', exact: true }).click();
-  await expect(page.getByRole('dialog')).toContainText('Petto, gambe e altri giorni non sono ancora inclusi');
+  await expect(page.getByRole('dialog')).toContainText('programma completo PPL 2019');
   await page.screenshot({ path: 'artifacts/screenshots/21-new-plan-choice.png', fullPage: true });
   await page.getByRole('button', { name: /Chris Bumstead · Schiena/ }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Aggiungi scheda' }).click();

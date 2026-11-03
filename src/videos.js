@@ -28,6 +28,8 @@ const tutorials = [
   ['NwwDBARCGgo', 'How To Use The Stationary Bike', '', 'PureGym']
 ];
 export const exerciseVideos = Object.fromEntries(tutorials.map(([id, title, note, author], i) => [`ex-${i}`, { id, title, author: author || 'ScottHermanFitness', note: note || 'Tutorial di esecuzione. Audio in inglese.' }]));
+const pplTimes = { 'incline-barbell':528,'alternating-press':560,'dips':604,'barbell-row':671,'incline-curl':703,'ez-curl':746,'barbell-lunge':815,'hip-thrust':897,'seated-calf':911,'lying-curl':943,'close-bench':1006,'standing-press':1025,'pec-deck':1047,'rack-pull':1130,'hammer':1184,'reverse-pulldown':1213,'adductor':1376,'press-calf':1361 };
+for(const [key,start] of Object.entries(pplTimes)) exerciseVideos[`ppl19-${key}`]={id:'p-8WBLBrG4k',start,author:'Chris Bumstead',title:'PPL 2019 · Spiegazione originale',note:'Chris spiega questo esercizio e la prescrizione del programma; non è un tutorial pratico isolato.'};
 const referenceTimes = {
   'cbum-lat-supina': 25, 'cbum-tbar': 136, 'cbum-row-prona': 136,
   'cbum-high-row': 136, 'cbum-ez-reverse': 472, 'cbum-hammer': 472,
