@@ -7,6 +7,7 @@ import { icon } from './icons.js';
 import { backReference, importBackReference } from './references.js';
 import { exerciseVideo, exerciseVideoSearch, youtubeUrl } from './videos.js';
 import { ppl, pplExercises, importPpl, pplDates, schedulePpl } from './ppl.js';
+import { enableWebUpdates } from './updates.js';
 
 const root = document.querySelector('#app');
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -16,9 +17,10 @@ const dateFmt = value => new Intl.DateTimeFormat('it-IT', { day: 'numeric', mont
 const dateTitle = () => new Intl.DateTimeFormat('it-IT', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
 const repTarget = row => row.targetSeconds ? `${row.targetSeconds} s` : row.toFailure ? 'Cedimento' : row.freeReps ? 'Libere' : row.repsMax ? `${row.reps}–${row.repsMax}` : row.reps;
 const setSuffix = set => set.kind === 'drop' ? ' (drop)' : set.kind === 'restpause' ? ' (rest-pause)' : set.kind === 'warmup' ? ' (riscaldamento)' : '';
-let state, view = 'home', libraryQuery = '', muscle = '', nutritionDate = dayKey(), historyExercise = '', toastTimeout, storageError = false, restNotified = null, effortNotified = null;
+const requestedView = new URLSearchParams(location.search).get('screen');
+let state, view = ['home','plans','ppl','library','runner','progress','nutrition','recipes','habits','more','settings'].includes(requestedView) ? requestedView : 'home', libraryQuery = '', muscle = '', nutritionDate = dayKey(), historyExercise = '', toastTimeout, storageError = false, restNotified = null, effortNotified = null;
 let editingPlan = null;
-const viewStack = ['home'];
+const viewStack = view === 'home' ? ['home'] : ['home',view];
 
 function toast(message, error = false) {
   const node = document.querySelector('#toast'); node.textContent = message; node.className = error ? 'visible error' : 'visible';
@@ -418,7 +420,7 @@ App.addListener('backButton', () => {
 }
 try {
   state = await load(); render();
-  if (!Capacitor.isNativePlatform() && 'serviceWorker' in navigator && import.meta.env.PROD) navigator.serviceWorker.register(new URL('sw.js', document.baseURI)).catch(() => {});
+  if (!Capacitor.isNativePlatform() && import.meta.env.PROD) enableWebUpdates(()=>save(state),message=>toast(message,true),()=>view);
 } catch {
   root.innerHTML = `<main class="recovery panel"><h1>PROTEGGIAMO I TUOI DATI.</h1><p>L’archivio non è leggibile. Non è stato sovrascritto. Puoi ripristinare un backup valido.</p><input id="recovery-file" type="file" accept=".json,application/json" aria-label="Ripristina backup"><p id="recovery-error" role="alert"></p></main>`;
   document.querySelector('#recovery-file').onchange = async event => {
