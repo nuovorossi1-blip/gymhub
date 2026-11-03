@@ -2,6 +2,11 @@ name: Verifica e pubblica GymHub Web
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'android/**'
+      - '.github/workflows/android.yml'
+      - '*.md'
+      - '.gitattributes'
   workflow_dispatch:
 permissions:
   contents: read

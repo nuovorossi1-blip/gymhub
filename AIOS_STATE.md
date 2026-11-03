@@ -15,3 +15,5 @@ Android: assembleDebug con JDK 21 riuscito. Emulatore API37, WebView 411 px: reg
 Correzioni verificate: cache offline per file statici con Vary: Origin (ignoreVary nella cache stessa origine); salvataggio immediato durante l'input e al passaggio in background; splash con limite esterno di 6 s; SystemBars DARK in Capacitor 8 per icone chiare sullo sfondo grafite.
 
 Distribuzione: repository pubblico nuovorossi1-blip/gymhub, GitHub Pages con workflow di test/deploy. APK di anteprima compilato localmente con firma debug. Non inserire keystore, archivi utente, APK di terzi o segreti nel repository.
+
+CI Android iniziale: fallita nella preparazione SDK prima di compilare; android-actions/setup-android@v3 richiedeva il pacchetto rimosso `tools`. Correzione: usare sdkmanager preinstallato nel runner con platform-tools, platforms;android-36 e build-tools;36.0.0 espliciti. Il fallimento non riguarda l'APK locale già compilato e verificato. I cambi solo Android/documentazione non avviano nuovamente Pages.
