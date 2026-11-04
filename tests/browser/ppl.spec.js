@@ -22,7 +22,8 @@ test('split completa: sei schede, calendario riposi, editor40s, timer e ripresa'
   await timed.getByRole('button',{name:'Avvia serie 40s'}).click();await expect(page.locator('#effort-panel')).toContainText('SERIE IN CORSO');
   await timed.locator('[data-property="kg"]').first().fill('10');await timed.locator('[data-property="reps"]').first().fill('15');
   await page.reload();await expect(page.locator('#avvio')).toHaveCount(0);await page.getByRole('button',{name:'Riprendi allenamento',exact:true}).click();
-  await expect(page.locator('#effort-panel')).toBeVisible();await expect(timed.locator('[data-property="reps"]').first()).toHaveValue('15');
+  await expect(page.locator('#effort-panel')).toHaveCount(0);await expect(timed.locator('[data-property="reps"]').first()).toHaveValue('15');
+  await page.getByRole('button',{name:'Riprendi',exact:true}).click();
   await timed.locator('.set-check').first().click();await expect(page.locator('#effort-panel')).toHaveCount(0);
   await page.screenshot({path:'artifacts/screenshots/27-ppl-runner.png'});
   await page.getByRole('button',{name:'Concludi allenamento'}).click();await page.getByRole('dialog').getByRole('button',{name:'Salva allenamento'}).click();await expect(page.locator('.history-card')).toContainText('150');

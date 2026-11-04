@@ -27,6 +27,7 @@ test('percorso completo: scheda, sostituzione, superset/drop, pausa, riapertura 
   await a.locator('[data-property="kg"]').nth(0).fill('20'); await a.locator('[data-property="reps"]').nth(0).fill('8');
   await page.reload(); await expect(page.locator('#avvio')).toHaveCount(0); await main(page).getByRole('button',{name:'Riprendi allenamento',exact:true}).click();
   await expect(a.locator('[data-property="kg"]').nth(0)).toHaveValue('20'); await expect(a.locator('[data-property="reps"]').nth(0)).toHaveValue('8');
+  await expect(main(page).getByText('Allenamento in pausa',{exact:true})).toBeVisible(); await main(page).getByRole('button',{name:'Riprendi',exact:true}).click();
   await a.getByRole('button',{name:'Completa serie 1 Pullover GymHub',exact:true}).click(); await expect(page.locator('#rest-panel')).toBeHidden();
   await a.locator('[data-property="kg"]').nth(1).fill('10'); await a.locator('[data-property="reps"]').nth(1).fill('6');
   await a.getByRole('button',{name:'Completa serie 1 Pullover GymHub drop',exact:true}).click(); await expect(page.locator('#rest-panel')).toBeHidden();

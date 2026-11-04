@@ -19,7 +19,7 @@ test('scheda video: dati8-12, rest-pause1/2, ripresa e storico senza numeri inve
     await lat.locator('.set-check').nth(i).click();
     if([0,2,3].includes(i))await expect(page.locator('#rest-panel')).toContainText('REST-PAUSE');
     else await expect(page.locator('#rest-panel')).toBeHidden();
-    if(i===0){await page.reload();await expect(page.locator('#avvio')).toHaveCount(0);await page.getByRole('button',{name:'Riprendi allenamento',exact:true}).click();await expect(lat.locator('.set-check.is-done')).toHaveCount(1);}
+    if(i===0){await page.reload();await expect(page.locator('#avvio')).toHaveCount(0);await page.getByRole('button',{name:'Riprendi allenamento',exact:true}).click();await expect(lat.locator('.set-check.is-done')).toHaveCount(1);await page.getByRole('button',{name:'Riprendi',exact:true}).click();}
   }
   await expect(rows.nth(1)).toContainText('TRI-SET A');await expect(rows.nth(1).locator('[data-property="reps"]').first()).toHaveAttribute('placeholder','8–12');
   await rows.nth(1).locator('[data-property="kg"]').first().fill('20');await rows.nth(1).locator('.set-check').first().click();await expect(page.locator('#toast')).toContainText('Ripetizioni');

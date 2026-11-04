@@ -4,7 +4,7 @@ import { initialState, clone, startWorkout, completeSet, finishWorkout, togglePa
 import { backReference, importBackReference, chestReference, legsReference, importVideoSession } from '../src/references.js';
 import { exerciseVideo, exerciseVideos, youtubeUrl } from '../src/videos.js';
 import { ppl, importPpl, pplDates, schedulePpl } from '../src/ppl.js';
-import { startEffort, addVariableDrop } from '../src/domain.js';
+import { startEffort, addVariableDrop, rotateWorkoutSchedule, progressionSuggestion } from '../src/domain.js';
 
 test('PPL completo: sei sedute dei prospetti, serie diseguali e nessuna copia sovrascritta', () => {
   const state=initialState(), original=clone(state); let next=importPpl(state);

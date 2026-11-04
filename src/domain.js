@@ -68,6 +68,51 @@ export function validatePlan(plan, state) {
   return plan;
 }
 
+export function progressionSuggestion(state, exerciseId, increment = 5) {
+  number(increment, 0.5, 50, 'Incremento carico');
+  const history = [...state.history].sort((a,b) => b.finishedAt - a.finishedAt);
+  for (const session of history) {
+    const row = session.exercises.find(e => e.exerciseId === exerciseId && e.sets.some(s=>s.done && s.kind==='working' && s.kg>0));
+    if (!row) continue;
+    const working = row.sets.filter(s=>s.done && s.kind==='working' && s.kg>0);
+    const load = working.at(-1).kg;
+    const prescribed = state.plans.flatMap(p=>p.exercises).find(r=>r.exerciseId===exerciseId && Number.isInteger(r.repsMax));
+    const maxReps = prescribed?.repsMax ?? null;
+    const ready = maxReps != null && working.length > 0 && working.every(s=>s.reps>=maxReps && s.kg===load);
+    return { load, repetitions: working.at(-1).reps, maxReps, ready, suggested: ready ? Math.round((load+increment)*2)/2 : load };
+  }
+  return null;
+}
+
+export function rotateWorkoutSchedule(state, planId, today = dayKey()) {
+  const next = clone(state);
+  if (!next.plans.some(p => p.id === planId)) throw new Error('Scheda non trovata.');
+  const todayRest = next.schedule.find(s=>s.date===today && s.kind==='rest');
+  const placeToday=()=>{if(todayRest){delete todayRest.kind;todayRest.planId=planId;} else if(!next.schedule.some(s=>s.date===today)) next.schedule.push({id:uid(),date:today,planId});};
+  const slots = next.schedule.filter(s => s.date >= today && s.kind !== 'rest').sort((a,b) => a.date.localeCompare(b.date));
+  if (!slots.length) {
+    placeToday();
+    return next;
+  }
+  // Preserve the planned A/B cycle and rest dates, changing only which session begins next.
+  const rotation = [...new Set(slots.map(s => s.planId))];
+  const offset = rotation.indexOf(planId);
+  if (offset < 0) {
+    const todaySlot = slots.find(s => s.date === today);
+    if (todaySlot) todaySlot.planId = planId;
+    else placeToday();
+    return next;
+  }
+  const rotated = rotation.slice(offset).concat(rotation.slice(0, offset));
+  slots.forEach((slot,i) => { slot.planId = rotated[i % rotated.length]; });
+  if (slots[0].date !== today) {
+    placeToday();
+    // Keep tomorrow and future appointments synchronized with the newly chosen session.
+    slots.forEach((slot,i)=> { slot.planId = rotated[(i+1) % rotated.length]; });
+  }
+  return next;
+}
+
 export function startWorkout(state, plan, now = Date.now()) {
   if (state.active) throw new Error('Hai un allenamento in corso: riprendilo o annullalo.');
   validatePlan(plan, state);
@@ -97,6 +142,14 @@ export function startEffort(state, exerciseId, now = Date.now()) {
   return next;
 }
 
+export function addWarmupSet(state, exerciseId) {
+  const next=clone(state), row=next.active?.exercises.find(e=>e.id===exerciseId);
+  if(!row || next.active.pausedAt) throw new Error('Riprendi l’allenamento prima di aggiungere un avvicinamento.');
+  if(row.sets.filter(s=>s.kind==='warmup').length>=10) throw new Error('Massimo 10 serie di avvicinamento.');
+  row.sets.unshift({ id:uid(), round:0, kind:'warmup', kg:0, reps:null, target:'Libere', done:false });
+  return next;
+}
+
 export function addVariableDrop(state, exerciseId) {
   const next = clone(state), row = next.active?.exercises.find(e => e.id === exerciseId);
   if (!row?.variableDrops || next.active.pausedAt || row.sets.length >= 24) throw new Error('Riduzione non disponibile.');
@@ -117,7 +170,7 @@ export function completeSet(state, exerciseId, setId, now = Date.now()) {
   if (!session || session.pausedAt) throw new Error('Riprendi l’allenamento prima di registrare una serie.');
   const exercise = session.exercises.find(e => e.id === exerciseId), set = exercise?.sets.find(s => s.id === setId);
   if (!set) throw new Error('Serie non trovata.');
-  const roundSets = exercise.sets.filter(s => s.round === set.round);
+  const roundSets = exercise.sets.filter(s => set.kind === 'warmup' ? s.id === set.id : s.round === set.round && s.kind !== 'warmup');
   if (!set.done && set.kind === 'restpause' && roundSets.slice(0, roundSets.findIndex(s => s.id === set.id)).some(s => !s.done)) throw new Error('Completa prima la serie precedente dello stesso rest-pause.');
   number(set.kg, 0, 1500, 'Carico'); number(set.reps, 1, 1000, 'Ripetizioni');
   if (!Number.isInteger(set.reps)) throw new Error('Le ripetizioni devono essere intere.');
@@ -125,7 +178,7 @@ export function completeSet(state, exerciseId, setId, now = Date.now()) {
   if (session.effortRow === exerciseId) session.effortUntil = null;
   session.restUntil = null;
   session.restKind = null;
-  if (!set.done) return next;
+  if (!set.done || set.kind === 'warmup') return next;
   // Drops are immediate; a rest-pause has its own short timer, never a drop label.
   if (!roundSets.every(s => s.done)) {
     const pending = roundSets.find(s => !s.done);
@@ -153,7 +206,7 @@ export function swapExercise(state, sessionRowId, replacementId) {
 }
 
 export function sessionStats(session) {
-  const sets = session.exercises.flatMap(e => e.sets).filter(s => s.done);
+  const sets = session.exercises.flatMap(e => e.sets).filter(s => s.done && s.kind !== 'warmup');
   return { sets: sets.length, reps: sets.reduce((s, x) => s + x.reps, 0), volume: sets.reduce((s, x) => s + x.kg * x.reps, 0) };
 }
 

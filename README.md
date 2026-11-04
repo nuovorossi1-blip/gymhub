@@ -8,6 +8,17 @@ Dominio pubblico: `gymhub.redapp.dev`, collegato a GitHub Pages tramite CNAME co
 
 **Prima versione 0.1, non ancora equivalente a tutte le funzioni di STNDRD.** Codice e grafica originali; non include codice decompilato, contenuti, video o immagini di altre app. Grafica AI-OS: grafite, oro, Manrope e Barlow Condensed inclusi nell'app.
 
+## Aggiornamento web 0.1.5
+
+- **Schede:** visualizza tutti gli esercizi e apri una scheda in sola lettura, con legenda di riscaldamento/avvicinamento, back-off, drop set, rest-pause, superset e tri-set. La lettura non avvia il timer.
+- **Oggi:** scegli la seduta e riordina le prossime date di allenamento secondo la rotazione esistente, senza cancellare gli appuntamenti di riposo. Puoi decidere di allenarti anche in un giorno segnato come riposo.
+- **Sessione:** aggiungi serie di avvicinamento con ripetizioni e carichi personali. Si conservano nello storico, ma non nel conteggio del volume delle serie di lavoro. L'app passa in pausa quando viene lasciata in background, poi consente una ripresa esplicita.
+- **Recuperi:** il timer personale propone 80 secondi, valore modificabile da Oggi; durante ogni sessione puoi scegliere una durata diversa.
+- **Progressi:** ultimo carico e proposta di incremento 2,5/5/10 kg soltanto quando sono state registrate ripetizioni sufficienti rispetto al massimo del range. Non e' una prescrizione automatica.
+- **Chris Bumstead:** split off-season 2024 di nove giorni riportata come riferimento esterno; video ufficiali 2026 petto/schiena e braccia con link. Per questi nuovi riferimenti non sono stati inventati programmi o carichi da importare.
+
+Questo aggiornamento riguarda il sito web; l'APK pubblico precedente rimane una build distinta finché non viene pubblicata una release Android verificata.
+
 ## Funzioni disponibili
 
 - Versione 0.1.4: in **Schede**, oltre alla schiena, due sessioni video indipendenti: **Petto, spalle e tricipiti** (15/08/2026) e **Gambe e polpacci** (01/04/2026). Ogni scheda ha fonte e minutaggi propri. Prima di importare, i conteggi non dichiarati vanno scelti personalmente; le ripetizioni non prescritte si registrano durante l'allenamento. I tre video 2026 non formano una settimana ufficiale unica. Dettagli e limiti in [FONTI-SESSIONI-2026.md](FONTI-SESSIONI-2026.md).
