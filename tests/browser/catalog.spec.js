@@ -5,7 +5,7 @@ test('split Chris 2024: biblioteca in sola lettura, calendario scelto in Oggi, r
  const library=page.locator('[data-action="library-program"][data-id="cbum-offseason-2024"]');
  await library.click();let d=page.getByRole('dialog');
  await expect(d).toContainText('Justin King');
- await expect(d.locator('.library-detail-list li')).toHaveCount(9);
+ await expect(d.locator('.library-session-tile')).toHaveCount(9);
  await expect(d).not.toContainText('Avvia allenamento');
  await d.getByRole('button',{name:'Chiudi'}).click();
  await page.locator('.mobile-nav').getByRole('button',{name:'Oggi',exact:true}).click();

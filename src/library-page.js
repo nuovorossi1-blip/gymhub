@@ -8,14 +8,14 @@ export function libraryPageHtml(state,button){
  const p=id=>cbumCatalog.find(x=>x.id===id);
  const item=(id,description,coach)=>{const x=p(id);return card(x.year+' · '+coach,x.title,description,'library-program',id,x.certainty);};
  return '<header class="page-head"><div><p class="eyebrow">LA BIBLIOTECA DEGLI ALLENAMENTI</p><h1>SCHEDE & METODI</h1><p class="sub">Qui studi e confronti. Per scegliere un ciclo, pianificare o iniziare vai su Oggi.</p></div></header>'+
- era('01 · LE ORIGINI · IAIN VALLIERE','Dalle prime split alla preparazione Olympia.',
+ era('01 · LE ORIGINI / PERIODO IAIN VALLIERE','Dalle prime split alla preparazione Olympia.',
  [item('cbum-five-2016','Cinque sedute a rotazione, riposo secondo necessità.','Periodo iniziale'),
  card('2019 · Programma da video originale','PUSH / PULL / LEGS A-B','Sei allenamenti distinti con esercizi, range, riscaldamenti, back-off e tecniche documentate.','library-ppl','2019','Periodizzazione e recuperi personalizzabili'),
  item('cbum-olympia-2020','Rotazione di otto giorni con priorità a braccia e schiena.','Iain Valliere')])+
  era('02 · HANY RAMBOD · 2022–2024','Preparazione Olympia: qualità esecutiva, volume mirato e FST-7.',
- [card('2022 · Inizio collaborazione','CHRIS + HANY · FST-7','Le sedute con Hany aggiungono protocolli FST-7, senza sostituire automaticamente tutte le serie e le split di Chris.','library-hany','hany2022','Coach dal 2022 · sedute pubbliche documentate'),
+ [card('2022 · Olympia · Hany Rambod','CHRIS + HANY · PREPARAZIONE 2022','Apri la preparazione, la seduta documentata petto/tricipiti con otto esercizi e le metodiche. La rotazione completa 2022 non è verificata.','library-hany','hany2022','Coach dal 2022 · sedute pubbliche documentate'),
  item('cbum-olympia-2023','Ciclo 3 giorni ON / 1 OFF / 3 ON / 1 OFF.','Hany Rambod'),
- card('2023–2024 · Metodica specifica','FST-7 E INTENSIFICAZIONE','Sette serie finali, recuperi ridotti, esecuzione controllata; possibili parziali e fermate isometriche.','library-hany','fst7','Non attribuire FST-7 a tutte le sedute'),
+ card('2023–2024 · Metodica specifica','FST-7 CON ESEMPIO DI SEDUTA','Apri come funziona FST-7 e la scheda gambe del 2024 in cui Hany lo applica ai polpacci.','library-hany','fst7','Non attribuire FST-7 a tutte le sedute'),
  card('2024 · Olympia preparation','GAMBE CON HANY','Sessione femorali, glutei e polpacci con attenzione alla posizione e FST-7 sui polpacci.','library-hany','hany2024','Sessione documentata, non una settimana completa')])+
  era('03 · OFF-SEASON 2024 · JUSTIN KING','Fase off-season: cicli lunghi e lavoro complementare sulla qualità del movimento.',
  [item('cbum-offseason-2024','Nove giorni e due riposi. Una ricostruzione esterna da confrontare con la fonte.','Off-season / Justin King')])+

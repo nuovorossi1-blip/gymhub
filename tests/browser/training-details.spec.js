@@ -1,0 +1,78 @@
+import {test,expect} from '@playwright/test';
+const library=async page=>{await page.goto('/?screen=plans');await expect(page.locator('#avvio')).toHaveCount(0)};
+test('2022 Hany: Esplora mostra preparazione, seduta petto con 8 esercizi e metodiche reali',async({page})=>{
+ await library(page);
+ await page.locator('[data-action="library-hany"][data-id="hany2022"]').click();
+ let d=page.getByRole('dialog');await expect(d).toContainText('LA SPLIT DI QUESTA PREPARAZIONE');
+ await expect(d).toContainText('split completa non pubblicata');
+ await expect(d).toContainText('Press e squat pesanti');
+ await d.locator('[data-action="library-hany-session"][data-id="hany2022:0"]').click();
+ d=page.getByRole('dialog');
+ await expect(d.locator('.library-exercise-list .detail-row')).toHaveCount(8);
+ await expect(d).toContainText('Chest press inclinata');
+ await expect(d).toContainText('Serie: non specificate');
+ await expect(d).not.toContainText('7 × 12');
+ await d.locator('[data-action="library-hany"][data-id="hany2022"]').click();
+ await expect(page.getByRole('dialog')).toContainText('LA SPLIT DI QUESTA PREPARAZIONE');
+ await expect(page.locator('#session-time')).toHaveCount(0);
+});
+test('2023 Hany: dalla split 8 giorni a petto e schiena, metodi e numeri non inventati',async({page})=>{
+ await library(page);
+ await page.locator('[data-action="library-program"][data-id="cbum-olympia-2023"]').click();
+ const d=page.getByRole('dialog');await expect(d.locator('.library-session-tile')).toHaveCount(8);
+ await d.locator('[data-action="library-catalog-session"][data-id="cbum-olympia-2023:2"]').click();
+ await expect(page.getByRole('dialog').locator('.library-exercise-list .detail-row')).toHaveCount(8);
+ await expect(page.getByRole('dialog')).toContainText('Lat machine neutra stretta');
+ await expect(page.getByRole('dialog')).toContainText('Serie: 3–4');
+ await page.getByRole('dialog').locator('[data-action="library-program"]').click();
+ await d.locator('[data-action="library-catalog-session"][data-id="cbum-olympia-2023:0"]').click();
+ await expect(page.getByRole('dialog')).toContainText('seduta completa no');
+ await expect(page.locator('.runner-card')).toHaveCount(0);
+});
+test('2024 off-season: tutte le 7 schede con serie e metodiche, 2 riposi',async({page})=>{
+ await library(page);
+ await page.locator('[data-action="library-program"][data-id="cbum-offseason-2024"]').click();
+ const d=page.getByRole('dialog');await expect(d.locator('.library-session-tile')).toHaveCount(9);
+ await expect(d.locator('.library-session-tile.rest-day')).toHaveCount(2);
+ await d.locator('[data-action="library-catalog-session"][data-id="cbum-offseason-2024:0"]').click();
+ await expect(page.getByRole('dialog')).toContainText('German Volume Training');
+ await expect(page.getByRole('dialog')).toContainText('Serie: 10 · Ripetizioni: 10');
+ await expect(page.getByRole('dialog').locator('.library-exercise-list .detail-row')).toHaveCount(7);
+ await page.getByRole('dialog').locator('[data-action="library-program"]').click();
+ await d.locator('[data-action="library-catalog-session"][data-id="cbum-offseason-2024:5"]').click();
+ await expect(page.getByRole('dialog')).toContainText('Tri-set bicipiti');
+});
+test('2024 Hany e FST7: seduta verificata, solo polpacci a 7 serie',async({page})=>{
+ await library(page);
+ await page.locator('[data-action="library-hany"][data-id="hany2024"]').click();
+ let d=page.getByRole('dialog');await expect(d).toContainText('LA SPLIT DI QUESTA PREPARAZIONE');
+ await d.locator('[data-action="library-hany-session"][data-id="hany2024:0"]').click();
+ d=page.getByRole('dialog');
+ await expect(d.locator('.library-exercise-list .detail-row')).toHaveCount(6);
+ await expect(d).toContainText('Calf raise seduto');
+ await expect(d).toContainText('Serie: 7');
+ await expect(d).toContainText('Eccentrica 3 secondi');
+ await d.getByRole('button',{name:'Chiudi'}).click();
+ await page.locator('[data-action="library-hany"][data-id="fst7"]').click();
+ await expect(page.getByRole('dialog')).toContainText('ESEMPIO REALE');
+ await page.getByRole('dialog').locator('[data-action="library-hany-session"]').click();
+ await expect(page.getByRole('dialog')).toContainText('Calf raise seduto');
+});
+test('2016: tutte le 5 schede dalla intervista primaria, squat top/back-off',async({page})=>{
+ await library(page);
+ await page.locator('[data-action="library-program"][data-id="cbum-five-2016"]').click();
+ let d=page.getByRole('dialog');await expect(d.locator('.library-session-tile')).toHaveCount(5);
+ await d.locator('[data-action="library-catalog-session"][data-id="cbum-five-2016:4"]').click();
+ d=page.getByRole('dialog');
+ await expect(d).toContainText('Squat · serie pesanti');
+ await expect(d).toContainText('Back-off');
+ await expect(d).toContainText('Serie: 6 · Ripetizioni: 10–12');
+});
+test('mobile 320: la lista e le schede dettagliate non debordano',async({page})=>{
+ await page.setViewportSize({width:320,height:720});
+ await library(page);
+ await page.locator('[data-action="library-hany"][data-id="hany2022"]').click();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+ await page.getByRole('dialog').locator('[data-action="library-hany-session"]').click();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+});

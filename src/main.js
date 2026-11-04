@@ -10,6 +10,7 @@ import { ppl, pplExercises, importPpl, pplDates, schedulePpl } from './ppl.js';
 import { enableWebUpdates } from './updates.js';
 import {libraryPageHtml,programDetailHtml,hanyDetailHtml} from './library-page.js';
 import {myPlansHtml} from './own-plans.js';
+import {catalogProgramHtml,catalogSessionHtml,hanyProgramHtml,hanySessionHtml,fst7DetailHtml} from './training-browser.js';
 import {pplLibraryHtml,pplSessionHtml} from './ppl-library.js';
 import { cbumCatalogHtml, cbumScheduleDialog } from './cbum-ui.js';
 import { cbumCatalog } from './cbum-catalog.js';
@@ -187,7 +188,7 @@ function morePage() {
 }
 
 function settingsPage() {
-  return head('IL CONTROLLO RESTA A TE', 'IMPOSTAZIONI', 'GymHub 0.1.7 · Biblioteca Chris') +
+  return head('IL CONTROLLO RESTA A TE', 'IMPOSTAZIONI', 'GymHub 0.1.8 · Allenamenti e metodiche') +
     `<section class="panel settings-panel"><h2>IL TUO PROFILO</h2><form id="profile-form">${field('Come ti chiami?', input('name', state.settings.name, 'required maxlength="100" autocomplete="given-name"'))}<button class="primary" type="submit">Salva nome</button></form></section><section class="panel settings-panel"><h2>I TUOI DATI</h2><p>Salvati solo qui. Android e browser hanno archivi separati: usa il backup per trasferirli. La disinstallazione dell’app o la cancellazione dei dati del browser elimina l’archivio locale.</p><div class="wrap-actions">${button('export', 'Esporta backup', 'download', 'primary')}${button('import', 'Importa backup', 'plus', 'secondary')}</div><input id="import-file" type="file" accept=".json,application/json" hidden></section><section class="panel settings-panel"><h2>FUNZIONI ONLINE</h2><p>Questa versione include allenamento, diario alimentare manuale, ricette, abitudini e progressi. Sincronizzazione tra dispositivi, community, catalogo video e riconoscimento fotografico con AI richiedono servizi aggiuntivi e non sono ancora disponibili.</p><p>Il timer usa l’orologio del dispositivo. Su Android, concedendo le notifiche, può avvisarti a schermo spento; il sistema può ritardare l’avviso. Nel browser l’avviso sonoro funziona mentre la pagina è attiva.</p></section><section class="panel settings-panel"><h2>OPEN SOURCE</h2><p>Codice originale, licenza MIT. Font Manrope e Barlow Condensed con licenza SIL OFL. Nessun codice, video o immagine di STNDRD incluso.</p><p>Nessun account, nessuna pubblicità, nessun pagamento.</p></section>`;
 }
 
@@ -332,10 +333,12 @@ async function syncRest() {
 }
 
 const actions = {
-  'library-program': b => {const p=cbumCatalog.find(x=>x.id===b.dataset.id);if(p)modal(esc(p.title),programDetailHtml(p),null);},
+  'library-program': b => {const p=cbumCatalog.find(x=>x.id===b.dataset.id);if(p)modal(esc(p.title),catalogProgramHtml(p),null);},
+  'library-catalog-session': b=>{const html=catalogSessionHtml(b.dataset.id);if(html)modal('LA SEDUTA E LE METODICHE',html,null);},
+  'library-hany-session': b=>{const html=hanySessionHtml(b.dataset.id);if(html)modal('ALLENAMENTO · CHRIS CON HANY',html,null);},
   'library-ppl': () => go('ppl'),
   'library-ppl-session': b=>{const html=pplSessionHtml(b.dataset.id,state.exercises);if(html)modal('CHRIS 2019 · '+esc(ppl.sessions.find(x=>x.key===b.dataset.id)?.name),html,null);},
-  'library-hany': b=>modal('HANY RAMBOD · CHRIS BUMSTEAD',hanyDetailHtml(b.dataset.id),null),
+  'library-hany': b=>{const html=b.dataset.id==='fst7'?fst7DetailHtml():hanyProgramHtml(b.dataset.id);if(html)modal('HANY RAMBOD · CHRIS BUMSTEAD',html,null);},
   'library-back': ()=>modal('SCHIENA · SESSIONE 2026', '<p class="helper">'+esc(backReference.title)+'</p>'+backReference.blocks.map((r,i)=>'<div class="detail-row"><strong>'+esc(r.title)+'</strong><p>'+esc(r.prescription)+' · '+esc(r.detail)+'</p><a class="text-button" target="_blank" rel="noopener noreferrer" href="'+esc(backReference.url)+'&t='+r.time+'s">Guarda il video</a></div>').join(''),null),
   'library-video': b=>{const s=additionalSessions.find(x=>x.key===b.dataset.id);if(s)modal(esc(s.cardTitle),'<p>'+esc(s.summary)+'</p>'+s.blocks.map(r=>'<div class="detail-row"><strong>'+esc(r.title)+'</strong><p>'+esc(r.prescription)+' · '+esc(r.detail)+'</p></div>').join('')+'<p class="helper">Video indipendente: dati non documentati non attribuiti a Chris.</p><a class="text-button" target="_blank" rel="noopener noreferrer" href="'+esc(s.url)+'">Guarda la fonte</a>',null);},
   'library-more-videos': ()=>modal('VIDEO CHRIS · 2026','<p>Petto e schiena (19 marzo) e braccia (30 maggio): sessioni da approfondire, non una split ufficiale unica.</p><a href="https://www.youtube.com/watch?v=o0tT5plmyRI" target="_blank" rel="noopener noreferrer" class="text-button">Petto / schiena</a><p></p><a href="https://www.youtube.com/watch?v=61cBu2XHvRo" target="_blank" rel="noopener noreferrer" class="text-button">Braccia</a>',null),
