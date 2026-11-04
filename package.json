@@ -1,6 +1,6 @@
 {
   "name": "gymhub",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "GymHub: allenamenti, nutrizione e abitudini. Offline, open source, senza abbonamento.",
   "type": "module",
   "license": "MIT",
@@ -20,7 +20,8 @@
     "@capacitor/filesystem": "^8.1.5",
     "@capacitor/local-notifications": "^8.3.1",
     "@capacitor/preferences": "^8.0.1",
-    "@capacitor/share": "^8.0.3"
+    "@capacitor/share": "^8.0.3",
+    "three": "^0.181.2"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.6.0",

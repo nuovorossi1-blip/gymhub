@@ -1,0 +1,58 @@
+import {test,expect} from '@playwright/test';
+test('panca piana: grafica 3D animata, traiettoria, presa, gomiti, velocità, rotazione e YouTube sotto',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/?screen=library'); await expect(page.locator('#avvio')).toHaveCount(0);
+ await page.locator('.exercise-card[data-id="ex-0"]').click();
+ const d=page.getByRole('dialog'),w=d.locator('.motion-workspace');
+ await expect(w).toBeVisible();
+ await expect(w).toContainText('45–70°');
+ await expect(w).toContainText('sterno medio-basso');
+ await expect(w.locator('canvas')).toBeVisible();
+ await expect(w.locator('[data-motion-speed]')).toHaveValue('1');
+ await w.locator('[data-motion-control="play"]').click();
+ await expect(w.locator('[data-motion-control="play"]')).toContainText('Avvia');
+ await w.locator('[data-motion-speed]').selectOption('0.25');
+ await w.locator('[data-motion-control="side"]').click();
+ await expect(w.locator('.motion-view-name')).toContainText('laterale');
+ await w.locator('[data-motion-control="front"]').click();
+ await expect(w.locator('.motion-view-name')).toContainText('frontale');
+ await w.locator('[data-motion-control="reset"]').click();
+ await expect(w.locator('.motion-view-name')).toContainText('3/4');
+ await expect(d.getByRole('link',{name:/Guarda su YouTube/})).toBeVisible();
+ await d.getByRole('button',{name:'Chiudi'}).click();
+ expect(errors).toEqual([]);
+});
+test('JM Press: 3D differente dalla panca, tecnica di collo e gomiti, fonti sotto',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/?screen=library');await expect(page.locator('#avvio')).toHaveCount(0);
+ await page.getByRole('searchbox',{name:'Cerca esercizio'}).fill('JM Press');
+ await page.locator('.exercise-card').click();
+ const d=page.getByRole('dialog'),w=d.locator('.motion-workspace');
+ await expect(w).toHaveAttribute('data-motion','jm');
+ await expect(w).toContainText('NON è la stessa discesa');
+ await expect(w).toContainText('zona del mento');
+ await expect(w).toContainText('NON');
+ await expect(d.getByRole('link',{name:/Dimostrazione originale/})).toHaveAttribute('href',/youtube\.com/);
+ await expect(d.getByRole('link',{name:/Weight Training Guide/})).toBeVisible();
+ await expect(w.locator('canvas')).toBeVisible();
+ await d.getByRole('button',{name:'Chiudi'}).click();
+ expect(errors).toEqual([]);
+});
+test('mobile 320: animazione e istruzioni leggibili e senza overflow',async({page})=>{
+ await page.setViewportSize({width:320,height:760});
+ await page.goto('/?screen=library');await expect(page.locator('#avvio')).toHaveCount(0);
+ await page.locator('.exercise-card[data-id="ex-0"]').click();
+ const d=page.getByRole('dialog'),w=d.locator('.motion-workspace');
+ await expect(w.locator('canvas')).toBeVisible();
+ await expect(w.locator('[data-motion-control="play"]')).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+ await w.locator('[data-motion-control="side"]').click();
+ await expect(w.locator('.motion-view-name')).toContainText('laterale');
+});
+test('no fake animated motion for undefined exercise',async({page})=>{
+ await page.goto('/?screen=library');await expect(page.locator('#avvio')).toHaveCount(0);
+ await page.getByRole('searchbox',{name:'Cerca esercizio'}).fill('Pec deck');
+ await page.locator('.exercise-card').first().click();
+ await expect(page.getByRole('dialog').locator('.movement-unavailable')).toBeVisible();
+ await expect(page.getByRole('dialog').locator('canvas')).toHaveCount(0);
+});

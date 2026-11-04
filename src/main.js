@@ -15,6 +15,7 @@ import {pplLibraryHtml,pplSessionHtml} from './ppl-library.js';
 import { cbumCatalogHtml, cbumScheduleDialog } from './cbum-ui.js';
 import { cbumCatalog } from './cbum-catalog.js';
 import {searchLibraryExercises,findReferenceExercise,matchReferenceExercise,referenceExerciseHtml} from './exercise-catalog.js';
+import {motionPanelHtml,mountMotionPanel} from './motion-viewer.js';
 
 const root = document.querySelector('#app');
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -189,7 +190,7 @@ function morePage() {
 }
 
 function settingsPage() {
-  return head('IL CONTROLLO RESTA A TE', 'IMPOSTAZIONI', 'GymHub 0.1.9 · Libreria esercizi e video') +
+  return head('IL CONTROLLO RESTA A TE', 'IMPOSTAZIONI', 'GymHub 0.1.10 · Animazioni 3D e tecnica') +
     `<section class="panel settings-panel"><h2>IL TUO PROFILO</h2><form id="profile-form">${field('Come ti chiami?', input('name', state.settings.name, 'required maxlength="100" autocomplete="given-name"'))}<button class="primary" type="submit">Salva nome</button></form></section><section class="panel settings-panel"><h2>I TUOI DATI</h2><p>Salvati solo qui. Android e browser hanno archivi separati: usa il backup per trasferirli. La disinstallazione dell’app o la cancellazione dei dati del browser elimina l’archivio locale.</p><div class="wrap-actions">${button('export', 'Esporta backup', 'download', 'primary')}${button('import', 'Importa backup', 'plus', 'secondary')}</div><input id="import-file" type="file" accept=".json,application/json" hidden></section><section class="panel settings-panel"><h2>FUNZIONI ONLINE</h2><p>Questa versione include allenamento, diario alimentare manuale, ricette, abitudini e progressi. Sincronizzazione tra dispositivi, community, catalogo video e riconoscimento fotografico con AI richiedono servizi aggiuntivi e non sono ancora disponibili.</p><p>Il timer usa l’orologio del dispositivo. Su Android, concedendo le notifiche, può avvisarti a schermo spento; il sistema può ritardare l’avviso. Nel browser l’avviso sonoro funziona mentre la pagina è attiva.</p></section><section class="panel settings-panel"><h2>OPEN SOURCE</h2><p>Codice originale, licenza MIT. Font Manrope e Barlow Condensed con licenza SIL OFL. Nessun codice, video o immagine di STNDRD incluso.</p><p>Nessun account, nessuna pubblicità, nessun pagamento.</p></section>`;
 }
 
@@ -226,13 +227,14 @@ function exerciseForm(existing) {
 }
 function exerciseDetail(id) {
   const reference = findReferenceExercise(id);
-  if(reference) {modal(esc(reference.name),'<p>'+badge(reference.muscle)+' '+badge(reference.equipment)+' '+badge('DAL CATALOGO')+'</p>'+referenceExerciseHtml(reference)+'<p class="helper">Se vuoi inserirlo in una tua scheda, aggiungilo ai tuoi esercizi personali.</p>'+button('add-reference-exercise','Aggiungi ai miei esercizi','plus','primary','data-id="'+reference.id+'"'),null);return;}
+  if(reference) {const d=modal(esc(reference.name),'<p>'+badge(reference.muscle)+' '+badge(reference.equipment)+' '+badge('DAL CATALOGO')+'</p>'+motionPanelHtml(reference.name)+'<h3 class="spaced">VIDEO YOUTUBE E FONTI DI SUPPORTO</h3>'+referenceExerciseHtml(reference)+'<p class="helper">Se vuoi inserirlo in una tua scheda, aggiungilo ai tuoi esercizi personali.</p>'+button('add-reference-exercise','Aggiungi ai miei esercizi','plus','primary','data-id="'+reference.id+'"'),null);void mountMotionPanel(d).catch(err=>console.warn('Visualizzatore 3D non disponibile:',err));return;}
   const e = state.exercises.find(x => x.id === id), logs = state.history.filter(h => h.exercises.some(x => x.exerciseId === id && x.sets.some(s => s.done))).slice(-5).reverse();
   if (!e) return;
   const video = exerciseVideo(e);
   const demo = video ? `<section class="video-reference"><p class="eyebrow">COME SI ESEGUE</p><h3>${esc(video.title)}</h3><p>${esc(video.author)} · ${esc(video.note)}</p><a class="primary" href="${esc(video.url)}" target="_blank" rel="noopener noreferrer">${icon('play')} Guarda su YouTube ${icon('arrow')}</a><p class="helper">Si apre su YouTube. Serve una connessione Internet.</p></section>` : `<section class="video-reference"><h3>Trova la dimostrazione</h3><p>Non hai ancora associato un video a questo esercizio. Cercalo su YouTube e salva il link in “Modifica dettagli”.</p><a class="secondary" href="${esc(exerciseVideoSearch(e))}" target="_blank" rel="noopener noreferrer">${icon('search')} Cerca su YouTube ${icon('arrow')}</a></section>`;
-  const d = modal(esc(e.name), `<p>${badge(e.muscle)} ${badge(e.equipment)}</p>${demo}<p class="preserve-lines">${esc(e.notes || 'Aggiungi le tue note per ritrovarle quando ti alleni.')}</p>${referenceExerciseHtml(matchReferenceExercise(e.name))}<button type="button" class="secondary" id="edit-exercise">${icon('edit')} Modifica dettagli</button><h3 class="spaced">Ultime registrazioni</h3>${logs.length ? logs.map(h => `<div class="detail-row"><strong>${dateFmt(h.finishedAt)}</strong><p>${h.exercises.filter(x => x.exerciseId === id).flatMap(x => x.sets).filter(x => x.done).map(s => `${s.kg} kg × ${s.reps}${setSuffix(s)}`).join(' · ')}</p></div>`).join('') : '<p class="muted">Nessuna serie registrata.</p>'}`, null);
+  const d = modal(esc(e.name), `<p>${badge(e.muscle)} ${badge(e.equipment)}</p>${motionPanelHtml(e.name)}<h3 class="spaced">VIDEO YOUTUBE DI SUPPORTO</h3>${demo}<p class="preserve-lines">${esc(e.notes || 'Aggiungi le tue note per ritrovarle quando ti alleni.')}</p>${referenceExerciseHtml(matchReferenceExercise(e.name))}<button type="button" class="secondary" id="edit-exercise">${icon('edit')} Modifica dettagli</button><h3 class="spaced">Ultime registrazioni</h3>${logs.length ? logs.map(h => `<div class="detail-row"><strong>${dateFmt(h.finishedAt)}</strong><p>${h.exercises.filter(x => x.exerciseId === id).flatMap(x => x.sets).filter(x => x.done).map(s => `${s.kg} kg × ${s.reps}${setSuffix(s)}`).join(' · ')}</p></div>`).join('') : '<p class="muted">Nessuna serie registrata.</p>'}`, null);
   d.querySelector('#edit-exercise').onclick = () => { d.close(); exerciseForm(e); };
+  void mountMotionPanel(d).catch(err=>console.warn('Visualizzatore 3D non disponibile:',err));
 }
 
 function planForm(existing) {

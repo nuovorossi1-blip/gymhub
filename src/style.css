@@ -95,3 +95,34 @@
 .exercise-source-links a small{display:block;opacity:.7;font-size:12px;margin-top:5px}
 .exercise-list .exercise-card .tag {margin-left:auto}
 @media(max-width:440px){.exercise-source-links{grid-template-columns:minmax(0,1fr)}.exercise-knowledge{font-size:14px}}
+
+/* Interactive original 3D exercise coaching panels. Animation left, technique right. */
+.modal:has(.motion-workspace){width:min(1080px,calc(100vw - 34px))}
+.motion-workspace{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:17px;min-width:0}
+.motion-visual,.motion-guidance{min-width:0}
+.motion-stage{height:360px;position:relative;background:#101827;border:1px solid #42516a;border-radius:16px;overflow:hidden}
+.motion-canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+.motion-canvas:active{cursor:grabbing}
+.motion-stage-top{position:absolute;z-index:2;top:12px;left:12px;right:12px;display:flex;gap:8px;align-items:center;justify-content:space-between;pointer-events:none;color:#d1d9e7;font-size:9px;letter-spacing:.6px}
+.motion-live-label{color:#f4b73e;font-weight:800}
+.motion-help{position:absolute;z-index:2;bottom:12px;left:8px;right:8px;text-align:center;font-size:10px;color:#ced9e8;pointer-events:none}
+.motion-controls{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:10px}
+.motion-controls button{font-size:10px;min-height:35px;padding:8px 9px}
+.motion-speed-label{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:700;color:#d3d5db}
+.motion-speed-label select{min-width:76px;width:auto;font-size:11px;padding:7px 9px}
+.motion-legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin:12px 0;font-size:10px;color:#c8ced8}
+.motion-legend>span{display:flex;align-items:center;gap:5px}
+.motion-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.motion-dot.muscle{background:#d85c66}.motion-dot.bar{background:#b8c8d9}.motion-dot.path{background:#f4b73e}
+.motion-guidance{background:#171c25;border:1px solid #343d4f;border-radius:15px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.motion-guidance h3{font-size:19px}
+.motion-guidance h4{font-size:13px;margin:8px 0 0}
+.motion-guidance ul{margin:0;padding-left:19px;display:grid;gap:8px;color:#e5e9f2;font-size:12px;line-height:1.55}
+.motion-guidance li{padding-left:2px}
+.motion-guidance .eyebrow{margin:0}
+.motion-cue{background:#f4b73e13;border-left:3px solid #f4b73e;padding:9px;border-radius:5px;color:#ffe4a9;font-size:12px}
+.motion-yes{color:#83d8ba}.motion-no{color:#ffab9a}
+.movement-unavailable{padding:18px}
+.motion-webgl-error{position:absolute;inset:25% 15%;display:flex;align-items:center;justify-content:center;padding:14px;background:#1b2634;border-radius:12px;color:#fff;text-align:center;z-index:5}
+@media(max-width:800px){.motion-workspace{grid-template-columns:minmax(0,1fr)}.motion-stage{height:300px}.motion-guidance{padding:15px}}
+@media(max-width:440px){.motion-stage{height:250px}.motion-controls{gap:5px}.motion-controls button{padding:7px;font-size:9px}.motion-stage-top{font-size:8px}.motion-help{font-size:9px}}
