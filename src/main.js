@@ -15,7 +15,7 @@ import {pplLibraryHtml,pplSessionHtml} from './ppl-library.js';
 import { cbumCatalogHtml, cbumScheduleDialog } from './cbum-ui.js';
 import { cbumCatalog } from './cbum-catalog.js';
 import {searchLibraryExercises,findReferenceExercise,matchReferenceExercise,referenceExerciseHtml} from './exercise-catalog.js';
-import {motionPanelHtml,mountMotionPanel} from './motion-viewer.js';
+import {motionPanelHtml,mountMotionPanel,motionPresetFor} from './motion-viewer.js';
 
 const root = document.querySelector('#app');
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -120,8 +120,8 @@ function pplScheduleForm() {
 
 function libraryPage() {
   const filtered = searchLibraryExercises(state.exercises,libraryQuery,muscle);
-  return head('COSTRUISCI IL TUO PERCORSO', 'LIBRERIA ESERCIZI', `${filtered.length} esercizi tra archivio personale e catalogo documentato. Aprine uno per le dimostrazioni e le fonti.`, button('new-exercise', 'Nuovo esercizio', 'plus', 'primary')) +
-    `<div class="library-filters"><div class="search-field">${icon('search')}<input id="exercise-search" type="search" placeholder="Cerca esercizio o attrezzo…" aria-label="Cerca esercizio" value="${esc(libraryQuery)}"></div><div class="filter-chips">${['', ...MUSCLES].map(m => button('filter-muscle', m || 'Tutti', '', muscle === m ? 'chip active' : 'chip', `data-muscle="${m}"`)).join('')}</div></div><p class="results-count">${filtered.length} esercizi</p><div class="exercise-list">${filtered.map(e => `<button class="exercise-card" data-action="exercise-detail" data-id="${e.id}"><div class="exercise-monogram">${esc(e.muscle.slice(0, 2).toUpperCase())}</div><div class="exercise-copy"><h3>${esc(e.name)}</h3><p>${esc(e.muscle)} <span>·</span> ${esc(e.equipment)}</p></div>${e.kind==='reference'?badge('CATALOGO'):e.custom?badge('TUO'):''}${icon('chevron')}</button>`).join('')}</div>${!filtered.length ? empty('search', 'Nessun esercizio trovato', 'Prova un’altra ricerca oppure aggiungi il tuo esercizio.') : ''}`;
+  return head('COSTRUISCI IL TUO PERCORSO', 'LIBRERIA ESERCIZI', `${filtered.length} esercizi trovati. I movimenti con modello 3D sono indicati; gli altri hanno fonti e spiegazioni, ma non ancora un'animazione specifica.`, button('new-exercise', 'Nuovo esercizio', 'plus', 'primary')) +
+    `<div class="library-filters"><div class="search-field">${icon('search')}<input id="exercise-search" type="search" placeholder="Cerca esercizio o attrezzo…" aria-label="Cerca esercizio" value="${esc(libraryQuery)}"></div><div class="filter-chips">${['', ...MUSCLES].map(m => button('filter-muscle', m || 'Tutti', '', muscle === m ? 'chip active' : 'chip', `data-muscle="${m}"`)).join('')}</div></div><p class="results-count">${filtered.length} esercizi</p><div class="exercise-list">${filtered.map(e => `<button class="exercise-card" data-action="exercise-detail" data-id="${e.id}"><div class="exercise-monogram">${esc(e.muscle.slice(0, 2).toUpperCase())}</div><div class="exercise-copy"><h3>${esc(e.name)}</h3><p>${esc(e.muscle)} <span>·</span> ${esc(e.equipment)} <span>·</span> <strong class="motion-card-status ${motionPresetFor(e.name)?'has-3d':'no-3d'}">${motionPresetFor(e.name)?'3D interattivo':'3D da realizzare'}</strong></p></div>${e.kind==='reference'?badge('CATALOGO'):e.custom?badge('TUO'):''}${icon('chevron')}</button>`).join('')}</div>${!filtered.length ? empty('search', 'Nessun esercizio trovato', 'Prova un’altra ricerca oppure aggiungi il tuo esercizio.') : ''}`;
 }
 
 function runnerPage() {
@@ -190,7 +190,7 @@ function morePage() {
 }
 
 function settingsPage() {
-  return head('IL CONTROLLO RESTA A TE', 'IMPOSTAZIONI', 'GymHub 0.1.11 · 3D per più esercizi') +
+  return head('IL CONTROLLO RESTA A TE', 'IMPOSTAZIONI', 'GymHub 0.1.12 · Panca 3D e traiettoria completa') +
     `<section class="panel settings-panel"><h2>IL TUO PROFILO</h2><form id="profile-form">${field('Come ti chiami?', input('name', state.settings.name, 'required maxlength="100" autocomplete="given-name"'))}<button class="primary" type="submit">Salva nome</button></form></section><section class="panel settings-panel"><h2>I TUOI DATI</h2><p>Salvati solo qui. Android e browser hanno archivi separati: usa il backup per trasferirli. La disinstallazione dell’app o la cancellazione dei dati del browser elimina l’archivio locale.</p><div class="wrap-actions">${button('export', 'Esporta backup', 'download', 'primary')}${button('import', 'Importa backup', 'plus', 'secondary')}</div><input id="import-file" type="file" accept=".json,application/json" hidden></section><section class="panel settings-panel"><h2>FUNZIONI ONLINE</h2><p>Questa versione include allenamento, diario alimentare manuale, ricette, abitudini e progressi. Sincronizzazione tra dispositivi, community, catalogo video e riconoscimento fotografico con AI richiedono servizi aggiuntivi e non sono ancora disponibili.</p><p>Il timer usa l’orologio del dispositivo. Su Android, concedendo le notifiche, può avvisarti a schermo spento; il sistema può ritardare l’avviso. Nel browser l’avviso sonoro funziona mentre la pagina è attiva.</p></section><section class="panel settings-panel"><h2>OPEN SOURCE</h2><p>Codice originale, licenza MIT. Font Manrope e Barlow Condensed con licenza SIL OFL. Nessun codice, video o immagine di STNDRD incluso.</p><p>Nessun account, nessuna pubblicità, nessun pagamento.</p></section>`;
 }
 

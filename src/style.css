@@ -126,3 +126,19 @@
 .motion-webgl-error{position:absolute;inset:25% 15%;display:flex;align-items:center;justify-content:center;padding:14px;background:#1b2634;border-radius:12px;color:#fff;text-align:center;z-index:5}
 @media(max-width:800px){.motion-workspace{grid-template-columns:minmax(0,1fr)}.motion-stage{height:300px}.motion-guidance{padding:15px}}
 @media(max-width:440px){.motion-stage{height:250px}.motion-controls{gap:5px}.motion-controls button{padding:7px;font-size:9px}.motion-stage-top{font-size:8px}.motion-help{font-size:9px}}
+
+/* Movement teaching: stop at chest and examine elbows from above */
+.motion-scrubber{width:100%;flex-basis:100%;padding:11px 12px 8px;background:#151d29;border:1px solid #35445c;border-radius:12px;margin-top:5px}
+.motion-scrubber label{display:block;color:#dfe6f0;font-size:11px;font-weight:700;letter-spacing:.3px}
+.motion-phase-label{color:#ffd178}
+.motion-scrubber input[type=range]{width:100%;display:block;height:22px;margin:8px 0;padding:0;background:transparent;accent-color:#f5b935;border:0;cursor:ew-resize}
+.motion-steps{display:flex;justify-content:space-between;gap:4px;font-size:9px;color:#a8b4c8}
+.motion-steps span:nth-child(3){color:#f5b935;font-weight:800;text-align:center}
+.motion-note{background:#f5b9350c;border-left:3px solid #f5b935;color:#e1e5ee;border-radius:6px;font-size:11px;line-height:1.6;padding:11px 13px;margin-top:10px}
+.motion-note strong{color:#fbd881}
+@media(max-width:420px){.motion-steps{font-size:8px}.motion-controls button{min-height:35px}}
+
+.motion-card-status{font-size:10px;font-weight:750;white-space:nowrap}
+.motion-card-status.has-3d{color:#93dbb9}
+.motion-card-status.no-3d{color:#a7a4ab}
+@media(max-width:400px){.motion-card-status{font-size:9px;white-space:normal}}

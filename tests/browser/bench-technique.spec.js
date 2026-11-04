@@ -1,0 +1,58 @@
+import {test,expect} from '@playwright/test';
+test('panca: arriva davvero sul petto, gomiti sotto presa, vista dall’alto e fotogrammi controllabili',async({page})=>{
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/?screen=library');await expect(page.locator('#avvio')).toHaveCount(0);
+ await page.locator('.exercise-card[data-id="ex-0"]').click();
+ const d=page.getByRole('dialog'),p=d.locator('.motion-workspace'),c=p.locator('canvas');
+ await expect(c).toHaveAttribute('data-renderer-ready','true');
+ await expect(p.locator('.motion-note')).toContainText('sterno medio-basso');
+ await p.locator('[data-motion-control="top"]').click();
+ await expect(p.locator('.motion-view-name')).toContainText('gomiti');
+ const scrub=p.locator('[data-motion-frame]');
+ await scrub.fill('0');
+ await expect(c).toHaveAttribute('data-chest-contact','false');
+ const topY=Number(await c.getAttribute('data-bar-y'));
+ await scrub.fill('50');
+ await expect(p.locator('.motion-phase-label')).toContainText('Contatto sullo sterno');
+ await expect(c).toHaveAttribute('data-chest-contact','true');
+ await expect(c).toHaveAttribute('data-forearm-vertical','true');
+ const lowY=Number(await c.getAttribute('data-bar-y'));
+ expect(topY).toBeGreaterThan(lowY+.45);
+ expect(Math.abs(lowY-1.235)).toBeLessThan(.02);
+ await expect(p.locator('[data-motion-control="play"]')).toContainText('Avvia');
+ await scrub.fill('75');
+ await expect(p.locator('.motion-phase-label')).toContainText('Spinta');
+ await scrub.fill('100');
+ await expect(c).toHaveAttribute('data-chest-contact','false');
+ await d.getByRole('button',{name:'Chiudi'}).click();
+ expect(errors).toEqual([]);
+});
+test('mobile: il fermo immagine sul petto e le indicazioni sono accessibili',async({page})=>{
+ await page.setViewportSize({width:320,height:760});
+ await page.goto('/?screen=library');await expect(page.locator('#avvio')).toHaveCount(0);
+ await page.locator('.exercise-card[data-id="ex-0"]').click();
+ const d=page.getByRole('dialog'),p=d.locator('.motion-workspace');
+ await expect(p.locator('[data-motion-frame]')).toBeVisible();
+ await expect(p.locator('.motion-guidance')).toContainText('Cosa evitare');
+ await p.locator('[data-motion-frame]').fill('50');
+ await expect(p.locator('canvas')).toHaveAttribute('data-chest-contact','true');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+});
+test('esercizi: indicazione esplicita di quale movimento ha realmente un modello 3D',async({page})=>{
+ await page.goto('/?screen=library');await expect(page.locator('#avvio')).toHaveCount(0);
+ await expect(page.locator('.exercise-card[data-id="ex-0"]')).toContainText('3D interattivo');
+ await page.getByRole('searchbox',{name:'Cerca esercizio'}).fill('Pec deck');
+ await expect(page.locator('.exercise-card').first()).toContainText('3D da realizzare');
+});
+test('curl: il controllo dei fotogrammi blocca il movimento in contrazione',async({page})=>{
+ await page.goto('/?screen=library');await expect(page.locator('#avvio')).toHaveCount(0);
+ await page.getByRole('searchbox',{name:'Cerca esercizio'}).fill('Curl bilanciere EZ');
+ await page.locator('.exercise-card').first().click();
+ const d=page.getByRole('dialog'),p=d.locator('.motion-workspace');
+ await expect(p.locator('canvas')).toHaveAttribute('data-renderer-ready','true');
+ await p.locator('[data-motion-frame]').fill('50');
+ await expect(p.locator('.motion-phase-label')).toContainText('contrazione');
+ await expect(p.locator('[data-motion-control="play"]')).toContainText('Avvia');
+ await p.locator('[data-motion-control="top"]').click();
+ await expect(p.locator('.motion-view-name')).toContainText('alto');
+});

@@ -127,9 +127,14 @@ export async function mountExtendedMotion(dialog,holder,preset,kind){
  route.computeLineDistances();scene.add(route);
  const hint=ball(samples[samples.length-1],.05,gold);
  const view=holder.querySelector('.motion-view-name');
- const setView=what=>{if(what==='front'){camera.position.set(0,2.5,5);view.textContent='Vista frontale';}else if(what==='side'){camera.position.set(5,2.2,0);view.textContent='Vista laterale';}else{camera.position.set(3.6,2.65,4.4);view.textContent='Vista 3/4';}controls.update();};
+ const scrubber=holder.querySelector('[data-motion-frame]'),phaseLabel=holder.querySelector('.motion-phase-label');
+ const midLabel=({squat:'Accosciata controllata',curl:'Curl: contrazione',press:'Manubri sopra la testa',row:'Bilanciere verso l’addome',lat:'Barra alla parte alta del petto',legextension:'Ginocchio esteso'})[kind]||'Fase centrale';
+ const phaseName=q=>q<.07?'Posizione iniziale':q<.44?'Andata · controllo':q<=.56?midLabel:q<.94?'Ritorno · controllo':'Posizione iniziale';
+ const setView=what=>{if(what==='front'){camera.position.set(0,2.5,5);view.textContent='Vista frontale';}else if(what==='side'){camera.position.set(5,2.2,0);view.textContent='Vista laterale';}else if(what==='top'){camera.position.set(.01,5.1,.01);view.textContent='Vista dall’alto';}else{camera.position.set(3.6,2.65,4.4);view.textContent='Vista 3/4';}controls.update();};
  setView('reset');update(0);
  let playing=true,speed=1,phase=0,prev=0,raf=0,disposed=false;
+ const refreshPhase=()=>{if(scrubber&&document.activeElement!==scrubber)scrubber.value=String(Math.round(phase*100));if(phaseLabel)phaseLabel.textContent=phaseName(phase);};
+ refreshPhase();
  const off=[];
  holder.querySelectorAll('[data-motion-control]').forEach(button=>{
   const fn=()=>{const cmd=button.dataset.motionControl;if(cmd==='play'){playing=!playing;button.textContent=playing?'⏸ Pausa':'▶ Avvia';button.setAttribute('aria-pressed',String(playing));}else setView(cmd);};
@@ -137,11 +142,13 @@ export async function mountExtendedMotion(dialog,holder,preset,kind){
  });
  const selector=holder.querySelector('[data-motion-speed]');
  const onSpeed=()=>{speed=Number(selector.value)||1;};selector.addEventListener('change',onSpeed);
+ const onScrub=()=>{phase=Number(scrubber.value)/100;playing=false;const toggle=holder.querySelector('[data-motion-control="play"]');if(toggle){toggle.textContent='▶ Avvia';toggle.setAttribute('aria-pressed','false');}update(phase);refreshPhase();};
+ scrubber?.addEventListener('input',onScrub);
  const resize=()=>{if(disposed)return;const w=Math.max(1,canvas.clientWidth),h=Math.max(1,canvas.clientHeight);renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();};
  const ro=new ResizeObserver(resize);ro.observe(canvas);
- const tick=now=>{if(disposed||!dialog.open||!dialog.isConnected){dispose();return;}const dt=Math.min(.04,Math.max(0,(now-prev)/1000));prev=now;if(playing){phase=(phase+dt*speed/3.5)%1;update(phase);}controls.update();renderer.render(scene,camera);canvas.dataset.rendererReady='true';raf=requestAnimationFrame(tick);};
+ const tick=now=>{if(disposed||!dialog.open||!dialog.isConnected){dispose();return;}const dt=Math.min(.04,Math.max(0,(now-prev)/1000));prev=now;if(playing){phase=(phase+dt*speed/3.5)%1;update(phase);}refreshPhase();controls.update();renderer.render(scene,camera);canvas.dataset.rendererReady='true';raf=requestAnimationFrame(tick);};
  raf=requestAnimationFrame(tick);
- function dispose(){if(disposed)return;disposed=true;cancelAnimationFrame(raf);ro.disconnect();off.forEach(f=>f());selector.removeEventListener('change',onSpeed);controls.dispose();scene.traverse(obj=>{obj.geometry?.dispose?.();if(Array.isArray(obj.material))obj.material.forEach(m=>m.dispose());else obj.material?.dispose?.();});renderer.dispose();}
+ function dispose(){if(disposed)return;disposed=true;cancelAnimationFrame(raf);ro.disconnect();off.forEach(f=>f());selector.removeEventListener('change',onSpeed);scrubber?.removeEventListener('input',onScrub);controls.dispose();scene.traverse(obj=>{obj.geometry?.dispose?.();if(Array.isArray(obj.material))obj.material.forEach(m=>m.dispose());else obj.material?.dispose?.();});renderer.dispose();}
  dialog.addEventListener('close',dispose,{once:true});
  return dispose;
 }
