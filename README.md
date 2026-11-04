@@ -4,7 +4,7 @@ Il tuo spazio per allenarti. Android e browser, open source, senza abbonamento.
 
 [Apri GymHub nel browser](https://gymhub.redapp.dev/) · [APK di anteprima](https://github.com/nuovorossi1-blip/gymhub/releases)
 
-Dominio pubblico: `gymhub.redapp.dev`, collegato a GitHub Pages tramite CNAME. Il cambio di indirizzo non trasferisce automaticamente i dati locali del browser: esportare il backup dall'indirizzo precedente e importarlo sul nuovo. I dati dell'APK Android restano nel proprio archivio.
+Dominio pubblico: `gymhub.redapp.dev`, collegato a GitHub Pages tramite CNAME con proxy Cloudflare e HTTPS pubblico verificato. Il cambio di indirizzo non trasferisce automaticamente i dati locali del browser: esportare il backup dall'indirizzo precedente e importarlo sul nuovo. I dati dell'APK Android restano nel proprio archivio.
 
 **Prima versione 0.1, non ancora equivalente a tutte le funzioni di STNDRD.** Codice e grafica originali; non include codice decompilato, contenuti, video o immagini di altre app. Grafica AI-OS: grafite, oro, Manrope e Barlow Condensed inclusi nell'app.
 
