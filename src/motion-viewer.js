@@ -1,5 +1,6 @@
 // An original interactive 3D *schematic*, not captured athlete motion or a medical biomechanical model.
 // The bench and JM bar paths are intentionally distinct; angles/grip widths illustrate concepts, not prescriptions.
+import {extendedPresets,extendedPresetFor} from './motion-extensions.js';
 export const motionPresets = {
   bench: {
     title:'Panca piana · bilanciere',muscles:'Petto · tricipiti · deltoidi anteriori',
@@ -36,12 +37,13 @@ export const motionPresets = {
     top:{z:-.30,y:1.80},bottom:{z:-.78,y:1.32},width:.94
   }
 };
+Object.assign(motionPresets,extendedPresets);
 const n=v=>String(v??'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 export function motionPresetFor(name){
  const k=n(name);
  if(/\bjm press\b/.test(k))return 'jm';
  if(/panca piana|barbell bench press/.test(k)&&!(/presa stretta|jm/.test(k)))return 'bench';
- return null;
+ return extendedPresetFor(name);
 }
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const list=items=>'<ul>'+items.map(v=>'<li>'+esc(v)+'</li>').join('')+'</ul>';
@@ -69,6 +71,7 @@ export async function mountMotionPanel(dialog){
  if(!holder)return ()=>{};
  const kind=holder.dataset.motion, p=motionPresets[kind];
  if(!p)return ()=>{};
+ if(p.shape&&p.shape!=='supine'){const {mountExtendedMotion}=await import('./motion-extension-renderer.js');return mountExtendedMotion(dialog,holder,p,kind);}
  const canvas=holder.querySelector('canvas');
  const THREE=await import('three');
  const {OrbitControls}=await import('three/addons/controls/OrbitControls.js');
@@ -182,7 +185,7 @@ export async function mountMotionPanel(dialog){
   if(disposed||!dialog.open||!dialog.isConnected){dispose();return;}
   const dt=Math.min(.04,Math.max(0,(now-last)/1000));last=now;
   if(playing){phase=(phase+dt*speed/3.2)%1;pose();}
-  ctl.update();resize();renderer.render(scene,camera);
+  ctl.update();resize();renderer.render(scene,camera);canvas.dataset.rendererReady='true';
   raf=requestAnimationFrame(tick);
  }
  raf=requestAnimationFrame(tick);

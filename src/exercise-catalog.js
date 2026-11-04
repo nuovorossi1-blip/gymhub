@@ -93,6 +93,7 @@ for(const [name,details] of Object.entries(guide)){
  }
  else insert({name,...details});
 }
+insert({name:'Lat machine presa larga',muscle:'Schiena',equipment:'Macchina',context:'Dimostrazione di movimento · lat machine',summary:'Variante con presa prona larga: scapole e gomiti guidano la tirata al petto, senza tirare dietro la nuca.'});
 export const exerciseReferenceCatalog=catalog;
 export const findReferenceExercise=id=>catalog.find(r=>r.id===id);
 export const matchReferenceExercise=name=>catalog.find(r=>norm(r.name)===norm(name)||r.aliases.some(a=>norm(a)===norm(name)));
