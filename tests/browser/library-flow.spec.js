@@ -1,0 +1,46 @@
+import {test,expect} from '@playwright/test';
+test('biblioteca Chris 2019: coach, sei sedute, Push A con tecniche senza avvio',async({page})=>{
+ await page.goto('/?screen=plans'); await expect(page.locator('#avvio')).toHaveCount(0);
+ await expect(page.getByRole('heading',{name:'SCHEDE & METODI'})).toBeVisible();
+ await expect(page.locator('.library-era')).toHaveCount(5);
+ await page.getByRole('button',{name:/Esplora/}).filter({hasText:'Esplora'}).count();
+ await page.locator('[data-action="library-ppl"]').click();
+ await expect(page.getByRole('heading',{name:'CHRIS 2019 · PPL'})).toBeVisible();
+ await expect(page.locator('.program-intro')).toContainText('IAIN VALLIERE');
+ await expect(page.locator('.program-session')).toHaveCount(6);
+ await page.locator('[data-action="library-ppl-session"][data-id="push-a"]').click();
+ const d=page.getByRole('dialog');
+ await expect(d).toContainText('Panca inclinata bilanciere');
+ await expect(d).toContainText('Back-off');
+ await expect(d).toContainText('Superset / tri-set');
+ await expect(d).toContainText('Cedimento');
+ await expect(d).not.toContainText('Avvia allenamento');
+ await d.getByRole('button',{name:'Chiudi'}).click();
+ await expect(page.locator('.runner-card')).toHaveCount(0);
+});
+test('Oggi: scelta Chris 2019 PPL, cicli, riposi e schede personali',async({page})=>{
+ await page.clock.install({time:new Date('2027-01-04T12:00:00+01:00')});
+ await page.goto('/');await expect(page.locator('#avvio')).toHaveCount(0);
+ await page.getByRole('button',{name:'Scegli split e ciclo'}).click();
+ let d=page.getByRole('dialog');
+ await expect(d).toContainText('PPL completo 2019');
+ await d.locator('[data-action="activate-ppl"]').click();
+ d=page.getByRole('dialog');
+ await expect(d).toContainText('PIANIFICA IL CICLO PPL');
+ await d.getByLabel('Data di partenza').fill('2027-01-04');
+ await d.getByLabel('Quanti cicli').selectOption('1');
+ await expect(d.locator('.cycle-day')).toHaveCount(8);
+ await d.getByRole('button',{name:'Aggiungi schede e calendario'}).click();
+ await expect(page.locator('.weekly-agenda')).toContainText('Push');
+ await page.getByRole('button',{name:'Gestisci le mie schede'}).click();
+ await expect(page.locator('.plan-card')).toHaveCount(7);
+});
+test('320px biblioteca e dettaglio Push A nei limiti schermo',async({page})=>{
+ await page.setViewportSize({width:320,height:740}); await page.goto('/?screen=plans');
+ await expect(page.locator('#avvio')).toHaveCount(0);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+ await page.locator('[data-action="library-ppl"]').click();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+ await page.locator('[data-action="library-ppl-session"][data-id="push-a"]').click();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+});

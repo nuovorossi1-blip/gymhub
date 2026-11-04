@@ -10,7 +10,7 @@ test('mobile senza tagli orizzontali: Oggi, Schede, Split, Progressi, Esercizi, 
   }
   await page.goto('/?screen=plans');
   await expect(page.locator('#avvio')).toHaveCount(0);
-  await page.locator('.plan-card').first().getByRole('button',{name:'Leggi scheda'}).click();
+  await page.locator('.library-program').last().getByRole('button',{name:'Esplora'}).click();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth),'dialog @'+width).toBeLessThanOrEqual(width);
  }
 });

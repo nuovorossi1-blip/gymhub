@@ -1,29 +1,39 @@
 import {test,expect} from '@playwright/test';
-test('catalogo Chris: tutte le split, calendario 9 giorni e conflitti senza perdita',async({page})=>{
+test('split Chris 2024: biblioteca in sola lettura, calendario scelto in Oggi, riposi e conflitti',async({page})=>{
  await page.clock.install({time:new Date('2027-02-01T12:00:00+01:00')});
- await page.goto('/?screen=cbum');await expect(page.locator('#avvio')).toHaveCount(0);
- await expect(page.locator('.program-session')).toHaveCount(4);
- await expect(page.locator('.program-session').nth(3).locator('li')).toHaveCount(9);
- await page.locator('.program-session').nth(3).getByRole('button',{name:'Pianifica il ciclo'}).click();
- let d=page.getByRole('dialog');
+ await page.goto('/?screen=plans');await expect(page.locator('#avvio')).toHaveCount(0);
+ const library=page.locator('[data-action="library-program"][data-id="cbum-offseason-2024"]');
+ await library.click();let d=page.getByRole('dialog');
+ await expect(d).toContainText('Justin King');
+ await expect(d.locator('.library-detail-list li')).toHaveCount(9);
+ await expect(d).not.toContainText('Avvia allenamento');
+ await d.getByRole('button',{name:'Chiudi'}).click();
+ await page.locator('.mobile-nav').getByRole('button',{name:'Oggi',exact:true}).click();
+ await page.getByRole('button',{name:'Scegli split e ciclo'}).click();
+ await page.getByRole('dialog').locator('[data-action="activate-catalog"][data-id="cbum-offseason-2024"]').click();
+ d=page.getByRole('dialog');
  await expect(d.locator('select[name^="day-"]')).toHaveCount(7);
  await d.getByLabel('Data di partenza').fill('2027-02-01');
  await d.getByRole('button',{name:'Aggiungi il ciclo'}).click();
  await expect(page.locator('.weekly-agenda')).toContainText('Riposo');
- await page.locator('.mobile-nav').getByRole('button',{name:'Schede',exact:true}).click();
- await page.getByRole('button',{name:'Apri il catalogo split'}).click();
- await page.locator('.program-session').nth(3).getByRole('button',{name:'Pianifica il ciclo'}).click();
+ await page.getByRole('button',{name:'Scegli split e ciclo'}).click();
+ await page.getByRole('dialog').locator('[data-action="activate-catalog"][data-id="cbum-offseason-2024"]').click();
  d=page.getByRole('dialog');
  await d.getByLabel('Data di partenza').fill('2027-02-01');
  await d.getByRole('button',{name:'Aggiungi il ciclo'}).click();
  await expect(d.locator('.form-error')).toContainText('occupata');
 });
-test('catalogo e pianificazione entro lo schermo a 320 e 390 px',async({page})=>{
+test('mobile 320 e 390: biblioteca dei periodi e scelta del ciclo in Oggi senza debordare',async({page})=>{
  for(const width of [320,390]){
-  await page.setViewportSize({width,height:850});await page.goto('/?screen=cbum');
+  await page.setViewportSize({width,height:850});await page.goto('/?screen=plans');
   await expect(page.locator('#avvio')).toHaveCount(0);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
-  await page.locator('.program-session').last().getByRole('button',{name:'Pianifica il ciclo'}).click();
+  await page.locator('[data-action="library-program"][data-id="cbum-olympia-2023"]').click();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+  await page.getByRole('dialog').getByRole('button',{name:'Chiudi'}).click();
+  await page.locator('.mobile-nav').getByRole('button',{name:'Oggi',exact:true}).click();
+  await page.getByRole('button',{name:'Scegli split e ciclo'}).click();
+  await page.getByRole('dialog').locator('[data-action="activate-catalog"][data-id="cbum-olympia-2023"]').click();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
  }
 });

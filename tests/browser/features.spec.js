@@ -3,7 +3,7 @@ test('GymHub: consultazione, timer 80s, serie preparatorie e scelta in Oggi', as
   await page.goto('/');
   await expect(page.locator('#avvio')).toHaveCount(0);
   await page.locator('.mobile-nav').getByRole('button',{name:'Schede',exact:true}).click();
-  await page.locator('.plan-card').first().getByRole('button',{name:'Leggi scheda'}).click();
+  await page.locator('.library-program').last().getByRole('button',{name:'Esplora'}).click();
   await expect(page.getByRole('dialog')).toContainText('LEGGI LE TECNICHE');
   await expect(page.locator('#session-time')).toHaveCount(0);
   await page.getByRole('dialog').getByRole('button',{name:'Chiudi'}).click();

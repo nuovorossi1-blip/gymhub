@@ -7,7 +7,7 @@ test('HTML vecchio in cache: riapertura online aggiorna la shell, dati e accesso
   await page.getByLabel('Come ti chiami?').fill('Cache verificata');await page.getByRole('button',{name:'Salva nome'}).click();
   await page.evaluate(async()=>{const keys=await caches.keys(),cache=await caches.open(keys.filter(k=>k.startsWith('gymhub-')).at(-1));const stale=new Response('<h1>VERSIONE VECCHIA</h1>',{headers:{'content-type':'text/html'}});await cache.put(new URL('./',location.href),stale.clone());await cache.put(new URL('./index.html',location.href),stale.clone());});
   await page.goto('/');await expect(page.locator('#avvio')).toHaveCount(0);await expect(page.getByRole('heading',{name:'CIAO, CACHE VERIFICATA.'})).toBeVisible();await expect(page.getByText('VERSIONE VECCHIA')).toHaveCount(0);
-  await page.locator('.mobile-nav').getByRole('button',{name:'Schede',exact:true}).click();await expect(page.getByRole('button',{name:'Apri la split completa'})).toBeVisible();
+  await page.locator('.mobile-nav').getByRole('button',{name:'Schede',exact:true}).click();await expect(page.locator('[data-action="library-ppl"]')).toBeVisible();
   await context.setOffline(true);await page.goto('/?screen=ppl');await expect(page.locator('#avvio')).toHaveCount(0);await expect(page.locator('.program-session')).toHaveCount(6);await context.setOffline(false);
 });
 

@@ -30,7 +30,8 @@ test('tutorial esterno da libreria e allenamento, link personale e accesso sched
   await page.getByRole('button', { name: /La mia variante/ }).click(); d = page.getByRole('dialog');
   await expect(d.getByRole('link', { name: /Cerca su YouTube/ })).toHaveAttribute('href', /results\?search_query=/);
   await d.getByRole('button', { name: 'Chiudi', exact: true }).click();
-  await page.locator('.mobile-nav').getByRole('button', { name: 'Schede', exact: true }).click();
+  await page.locator('.mobile-nav').getByRole('button', { name: 'Oggi', exact: true }).click();
+  await page.getByRole('button', { name: 'Gestisci le mie schede' }).click();
   await page.getByRole('button', { name: 'Nuova scheda', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('programma completo PPL 2019');
   await page.screenshot({ path: 'artifacts/screenshots/21-new-plan-choice.png', fullPage: true });

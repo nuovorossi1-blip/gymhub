@@ -38,3 +38,32 @@
   .set-row .set-check {width:35px;height:35px}
   .set-row input {min-width:0;padding:8px 2px}
 }
+
+/* Biblioteca Chris: periodi, coach, metodiche; consultazione separata da Oggi */
+.library-era {margin:24px 0 30px;min-width:0}
+.library-era>.section-head {margin-bottom:13px}
+.library-era>.section-head>div {min-width:0}
+.library-era .eyebrow {font-size:12px;letter-spacing:.13em}
+.library-program-list {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:14px}
+.library-program {display:flex;flex-direction:column;justify-content:space-between;min-width:0;gap:18px}
+.library-program h2,.library-program p {overflow-wrap:anywhere}
+.library-program h2 {font-size:clamp(17px,2vw,23px);line-height:1.17}
+.library-program .helper {font-size:12px}
+.library-program>button {align-self:flex-start;max-width:100%;white-space:normal}
+.library-detail-list {padding-left:22px;min-width:0}
+.library-detail-list li {padding:12px 0;border-bottom:1px solid var(--line,#25272b);min-width:0;overflow-wrap:anywhere}
+.library-detail-list li span {display:block;font-size:12px;opacity:.75;margin-top:4px}
+.library-method {border-left:3px solid var(--gold,#f0b93b);padding:12px 15px;margin:18px 0;background:rgba(245,185,53,.06);border-radius:0 10px 10px 0}
+.library-method p {margin:8px 0 0;line-height:1.6}
+.library-tags {display:flex;flex-wrap:wrap;gap:6px}
+.library-tags .tag {white-space:normal;overflow-wrap:anywhere}
+.library-bottom-note {margin:22px 0 40px}
+@media(max-width:760px){
+ .library-program-list{grid-template-columns:minmax(0,1fr)}
+ .library-program{padding:18px;gap:13px}
+ .library-era{margin:22px 0}
+ .library-program h2{font-size:21px}
+ .library-detail-list{padding-left:18px}
+ .library-program .eyebrow {font-size:10px}
+ .modal-body .detail-row{max-width:100%;min-width:0;overflow-wrap:anywhere}
+}

@@ -3,8 +3,8 @@ import { test,expect } from '@playwright/test';
 test('scheda video: dati8-12, rest-pause1/2, ripresa e storico senza numeri inventati',async({page})=>{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto('/');await expect(page.locator('#avvio')).toHaveCount(0);
-  await page.locator('.mobile-nav').getByRole('button',{name:'Schede',exact:true}).click();
-  await page.getByRole('button',{name:'Scopri la sessione'}).click();let d=page.getByRole('dialog');
+  await page.getByRole('button',{name:'Gestisci le mie schede'}).click();
+  await page.getByRole('button',{name:'Importa schiena 2026'}).click();let d=page.getByRole('dialog');
   await expect(d).toContainText('3 × 8–12');await expect(d.locator('a').nth(1)).toHaveAttribute('href',/ZQPVYJc1cpM&t=136s$/);
   await page.screenshot({path:'artifacts/screenshots/16-cbum-reference.png',fullPage:true});
   await d.getByRole('button',{name:'Aggiungi scheda'}).click();
