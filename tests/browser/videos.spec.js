@@ -5,7 +5,7 @@ test('tutorial esterno da libreria e allenamento, link personale e accesso sched
   await context.route('https://www.youtube.com/**', route => route.fulfill({ contentType: 'text/html', body: '<title>Video esterno di prova</title>' }));
   await page.goto('/'); await expect(page.locator('#avvio')).toHaveCount(0);
   await page.locator('.mobile-nav').getByRole('button', { name: 'Esercizi', exact: true }).click();
-  await page.getByRole('button', { name: /Panca piana/ }).click();
+  await page.locator('.exercise-card[data-id="ex-0"]').click();
   let d = page.getByRole('dialog');
   await expect(d.getByRole('link', { name: /Guarda su YouTube/ })).toHaveAttribute('href', 'https://www.youtube.com/watch?v=rT7DgCr-3pg');
   await page.screenshot({ path: 'artifacts/screenshots/20-exercise-youtube.png', fullPage: true });
