@@ -1,6 +1,6 @@
 {
   "name": "gymhub",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "GymHub: allenamenti, nutrizione e abitudini. Offline, open source, senza abbonamento.",
   "type": "module",
   "license": "MIT",

@@ -85,3 +85,6 @@ Su Windows usare `gradlew.bat`. APK in `android/app/build/outputs/apk/debug/app-
 ## Licenze
 
 Codice MIT. Manrope e Barlow Condensed: SIL Open Font License, testi in `public/fonts/OFL-*.txt`. Dipendenze con le rispettive licenze. Icone GymHub disegnate nel codice del progetto. Nessuna affiliazione con STNDRD.
+
+## Aggiornamento 0.1.6 — catalogo split documentate
+Da Schede → Apri il catalogo split: quattro programmi storici di Chris Bumstead (5 sedute 2016, Olympia 2020 su 8 giorni, Olympia 2023 su 8 giorni, off-season 2024 su 9 giorni). Schede e cicli sono consultabili senza avviare un allenamento. Il calendario permette di associare una propria scheda a ciascuna seduta e di programmare 1, 2, 4 o 8 rotazioni, mantenendo i giorni di riposo documentati. Le date occupate non vengono sovrascritte. Il programma non inventa prescrizioni: dove le fonti non documentano serie, ripetizioni e carichi, vanno definiti dall'atleta nelle proprie schede. Le fonti e il livello di certezza sono indicati nelle card. Programmi a pagamento STNDRD non copiati. Il PPL 2019 già verificato rimane indipendente. Test di dominio e browser includono cicli, conflitti e mobile da 320px.
