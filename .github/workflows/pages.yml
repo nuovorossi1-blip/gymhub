@@ -13,8 +13,8 @@ permissions:
   pages: write
   id-token: write
 concurrency:
-  group: github-pages
-  cancel-in-progress: false
+  group: gymhub-pages-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
     runs-on: ubuntu-latest
