@@ -57,13 +57,13 @@ export function motionPanelHtml(name){
  '<div class="motion-controls">'+
  '<button type="button" class="secondary motion-play" data-motion-control="play" aria-pressed="true">⏸ Pausa</button>'+
  '<button type="button" class="secondary" data-motion-control="front">Frontale</button>'+
- '<button type="button" class="secondary" data-motion-control="side">Laterale</button>'+ 
- '<button type="button" class="secondary" data-motion-control="top">Dall’alto</button>'+  
+ '<button type="button" class="secondary" data-motion-control="side">Laterale</button>'+
+ '<button type="button" class="secondary" data-motion-control="top">Dall’alto</button>'+
  '<button type="button" class="secondary" data-motion-control="reset">3/4</button>'+
  '<label class="motion-speed-label">Velocità <select aria-label="Velocità animazione" data-motion-speed><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option><option value="1.5">1,5×</option></select></label>'+
  '<div class="motion-scrubber"><label for="motion-frame-'+kind+'">FASE DEL MOVIMENTO · <strong class="motion-phase-label" aria-live="polite">Posizione iniziale</strong></label><input type="range" min="0" max="100" step="1" value="0" id="motion-frame-'+kind+'" data-motion-frame aria-label="Seleziona la fase dell’esercizio"><div class="motion-steps"><span>Inizio</span><span>Andata</span><span>'+midLabel+'</span><span>Ritorno</span><span>Fine</span></div></div></div><div class="motion-legend"><span><i class="motion-dot muscle"></i> Gruppo muscolare</span><span><i class="motion-dot bar"></i> Bilanciere</span><span><i class="motion-dot path"></i> Traiettoria</span></div>'+
  '<p class="helper">'+esc(p.summary)+' La geometria illustra la direzione del movimento, non angoli personalizzati misurati.</p>'+
- (kind==='bench'?'<div class="motion-note">I riferimenti <strong>gialli</strong> evidenziano il punto di contatto sullo sterno medio-basso e la traiettoria. Le sfere <strong>arancioni</strong> identificano i gomiti. Seleziona «Dall’alto · gomiti» e sposta il cursore su «Al petto».</div>':'')+'</div>'+ 
+ (kind==='bench'?'<div class="motion-note">I riferimenti <strong>gialli</strong> evidenziano il punto di contatto sullo sterno medio-basso e la traiettoria. Le sfere <strong>arancioni</strong> identificano i gomiti. Seleziona «Dall’alto · gomiti» e sposta il cursore su «Al petto».</div>':'')+'</div>'+
  '<div class="motion-guidance"><p class="eyebrow">IMPOSTAZIONE E TRAIETTORIA</p><h3>'+esc(p.title)+'</h3><p class="motion-cue">'+esc(p.cue)+'</p>'+
  '<h4 class="motion-yes">✓ Cosa fare</h4>'+list(p.do)+
  '<h4 class="motion-no">✕ Cosa evitare</h4>'+list(p.dont)+
